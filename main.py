@@ -2,16 +2,14 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import (QCamera, QCameraImageCapture,
-                                QImageEncoderSettings, QMediaMetaData,
-                                QMediaRecorder, QMultimedia,
-                                QVideoEncoderSettings)
 from PyQt5.QtWidgets import *
 
 import sys
 import subprocess 
 from collections import deque
 
+import rostopic
+import rosgraph
 
 # Local Module Imports
 import dashboard_ui
@@ -45,6 +43,7 @@ def dark_style(app):
         "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
     # end of dark theme
 
+GREEN = '#66ff00'
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
         ip = self.drop_ip.currentText()
@@ -55,9 +54,19 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             p = float(t)
             self.ping_queue.append(p)
             self.plot_ping.set_data(self.ping_queue)
-            self.led_color(self.led_robot, '#66ff00')
+            self.led_color(self.led_robot, GREEN)
         except:
             self.led_color(self.led_robot, 'red')
+
+    def update_ros_topics(self):
+        print("update ROS")
+        self.ros_pubs = []
+        try:
+            self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
+            self.led_color(self.led_ros, GREEN)
+        except:
+            self.led_color(self.led_ros, 'red')
+        print(self.ros_pubs)
 
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
@@ -67,8 +76,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.setupUi(self)
 
         # ip
-        #self.label_ip.setText("192.168.1.1")
-        self.drop_ip.addItem("192.168.1.1")
+        self.drop_ip.addItem("localhost")
         self.drop_ip.addItem("tiago-61c")
         self.drop_ip.addItem("talos-5c")
 
@@ -84,6 +92,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping.timeout.connect(self.update_ping)
         self.timer_ping.start(250)
 
+        # ros
+        self.ros_master = rosgraph.Master('/rostopic')
+        self.timer_ros = QTimer()
+        self.timer_ros.timeout.connect(self.update_ros_topics)
+        self.timer_ros.start(500)
+        
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
