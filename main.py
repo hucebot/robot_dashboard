@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import *
 import sys
 import subprocess 
 from collections import deque
-
+import rostopic
+import rosgraph
 
 # Local Module Imports
 import dashboard_ui
