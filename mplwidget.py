@@ -18,12 +18,17 @@ class MplCanvas(Canvas):
         Canvas.__init__(self, self.fig)
         self.ax = self.fig.add_subplot(111)
         self.data = []
+        self.error = False
 
     def set_data(self, y):
         self.data = y
         self.ax.clear()
         x = np.arange(0, len(self.data))
-        line, = self.ax.plot(x, self.data, color="#66ff00")
+        if not self.error :
+            line, = self.ax.plot(x, self.data, color="#66ff00")
+        else:
+            line, = self.ax.plot(x, self.data, color="red")
+
         for cont in range(8, 1, -1):
             self.ax.plot(x, self.data, lw=cont, color=line.get_color(), zorder=5, alpha=0.1)
         self.ax.fill_between(x, y1=[0] * len(self.data), y2=self.data, color=line.get_color(), alpha=0.1)
@@ -44,6 +49,8 @@ class MplWidget(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
     def set_data(self, y):
-
         self.canvas.set_data(y)
         self.canvas.update()
+   
+    def error(self, v):
+        self.canvas.error = v

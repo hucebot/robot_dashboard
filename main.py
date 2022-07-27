@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import sys
+import sys, os
 import subprocess 
 from collections import deque
 
@@ -48,18 +48,22 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
         ip = self.drop_ip.currentText()
         try:
-            c = subprocess.check_output(["ping", "-c", "1", "-t", "1", ip])
-            c = c.split(b'\n')[-3:]
-            t = c[1].split(b"=")[1].split(b"/")[0]
+            c = subprocess.check_output(["fping", "-c1", "-t60", ip],stderr=subprocess.STDOUT)
+            t = c.split(b" ")[5]
             p = float(t)
             self.ping_queue.append(p)
-            self.plot_ping.set_data(self.ping_queue)
             self.led_color(self.led_robot, GREEN)
+            self.plot_ping.error(False)
+
         except:
             self.led_color(self.led_robot, 'red')
+            self.plot_ping.error(True)
+        self.plot_ping.set_data(self.ping_queue)
+
 
     def update_ros_topics(self):
-        print("update ROS")
+        ip = self.drop_ip.currentText()
+        os.environ["ROS_MASTER_URI"] = "http://" + ip +":11311"
         self.ros_pubs = []
         try:
             self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
