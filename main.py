@@ -10,6 +10,8 @@ from collections import deque
 
 import rostopic
 import rosgraph
+import rospy
+
 
 # Local Module Imports
 import dashboard_ui
@@ -68,9 +70,21 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         try:
             self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
             self.led_color(self.led_ros, GREEN)
+            self.ros_ok = True
         except:
             self.led_color(self.led_ros, 'red')
-        print(self.ros_pubs)
+            self.ros_ok = False
+
+    def update_ros_control(self):
+        if self.ros_ok:
+            try:
+                rospy.wait_for_service('/controller_manager/list_controllers', 0.1)
+                self.ros_control_ok = True
+            except rospy.ROSException:
+                self.ros_control_ok = False
+                return
+            
+            
 
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
@@ -94,6 +108,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.ping_queue = deque([], maxlen = 100)
         self.timer_ping = QTimer()
         self.timer_ping.timeout.connect(self.update_ping)
+        self.ros_ok = False
         self.timer_ping.start(250)
 
         # ros
@@ -102,7 +117,11 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ros.timeout.connect(self.update_ros_topics)
         self.timer_ros.start(500)
         
-
+        # control manager
+        self.timer_ros_control = QTimer()
+        self.timer_ros_control.timeout.connect(self.update_ros_control)
+        self.ros_control_ok = False
+        self.timer_ros_control.start(500)
 def main():
     app = QtWidgets.QApplication(sys.argv)
     dark_style(app)

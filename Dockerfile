@@ -13,6 +13,7 @@ RUN apt -q -qq update && \
   ros-${ROS_DISTRO}-rgbd-launch \
   ros-${ROS_DISTRO}-image-transport-plugins \
   ros-${ROS_DISTRO}-image-transport \
+  ros-${ROS_DISTRO}-controller-manager \
   python3-catkin \
   python3-catkin-pkg \
   python3-catkin-tools \
@@ -20,7 +21,8 @@ RUN apt -q -qq update && \
   python3-matplotlib \
   python3-pyqt5.qtmultimedia \
   git \
-  iputils-ping
+  iputils-ping \
+  qtcreator
 
 
 
