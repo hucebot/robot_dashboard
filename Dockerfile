@@ -20,8 +20,8 @@ RUN apt -q -qq update && \
   python3-pyqt5 \
   python3-matplotlib \
   python3-pyqt5.qtmultimedia \
+  fping \
   git \
-  iputils-ping \
   qtcreator \
   pyqt5-dev-tools
 
