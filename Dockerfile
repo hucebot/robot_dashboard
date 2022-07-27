@@ -22,7 +22,8 @@ RUN apt -q -qq update && \
   python3-pyqt5.qtmultimedia \
   git \
   iputils-ping \
-  qtcreator
+  qtcreator \
+  pyqt5-dev-tools
 
 
 
