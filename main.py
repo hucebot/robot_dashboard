@@ -106,7 +106,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.topic_diag = None
         self.ros_master = None
         self.topic_diag = None
-        self.led_motors = {}
         self.motors = {}
 
     def update_ros_control(self):
@@ -151,8 +150,10 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.led_motors[k].setObjectName(k)
                 self.layout_motors.insertWidget(len(self.layout_motors) - 1, self.led_motors[k])
         for k in self.led_motors:
-            if self.motors[k]:
+            if self.motors[k] == 0:
                 self.led_color(self.led_motors[k], GREEN)
+            elif self.motors[k] == 1:
+                self.led_color(self.led_motors[k], 'black')
             else:
                 self.led_color(self.led_motors[k], 'red')
 
@@ -172,10 +173,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                     self.emergency = True                    
             elif "/Hardware/Motor/"  in m.name:
                 n = m.name.split("/")[-1]
-                if m.message:
-                    self.motors[n] = False
+                #print('[' + m.message + ']')
+                mode = m.values[8].value
+                if m.message[0] == ' ':
+                    self.motors[n] = 0 # OK
                 else:
-                    self.motors[n] = True
+                    self.motors[n] = 2 # error
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -183,7 +186,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.reinit()
-
+        self.led_motors={}
         socket.setdefaulttimeout(0.05)# give 50ms to answer
 
 
