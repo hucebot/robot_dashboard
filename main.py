@@ -16,11 +16,18 @@ from controller_manager_msgs.srv import *
 from controller_manager_msgs.utils\
     import ControllerLister, ControllerManagerLister,\
     get_rosparam_controller_names
+from diagnostic_msgs.msg import DiagnosticArray
 
 import socket
+
+
 # Local Module Imports
 import dashboard_ui
-  
+
+# a nice green for LEDS
+GREEN = '#66ff00'
+
+
 def dark_style(app):
     # set a dark theme to the app!
     app.setStyle('fusion')
@@ -50,7 +57,6 @@ def dark_style(app):
         "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
     # end of dark theme
 
-GREEN = '#66ff00'
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
         ip = os.environ["ROS_MASTER_URI"].split('//')[1].split(':')[0]
@@ -69,27 +75,40 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
 
     def update_ros_topics(self):
-        ip = self.drop_ip.currentText()
-        #TODO : handle changes in ROS master
-        #os.environ["ROS_MASTER_URI"] = "http://" + ip +":11311"
         self.ros_pubs = []
         self.label_ros_uri.setText("["  + os.environ["ROS_MASTER_URI"] + "]")
-        old_def_timeout = socket.getdefaulttimeout()
         try:
-            socket.setdefaulttimeout(0.05)# give 50ms to answer
             if rosgraph.is_master_online():
                 self.ros_ok = True
+                if self.ros_master == None:
+                    self.ros_master = rosgraph.Master('/rostopic')
                 self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
             else:
                 self.ros_ok = False     
-        except:
+        except Exception as e:
             self.ros_ok = False
-        socket.setdefaulttimeout(old_def_timeout)
         if self.ros_ok:
             self.led_color(self.led_ros, GREEN)
-        else:
-            self.led_color(self.led_ros, 'red')
-      
+        else: # ros is down! let' s reinit everything
+            print("ROS is down!")
+            self.reinit()
+        if self.ros_ok and self.topic_diag == None:
+            rospy.init_node('dashboard', anonymous=True)
+            self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
+            print("subscribed to /diagnostics_agg")
+
+    def reinit(self):
+        print("reinit")
+        self.led_color(self.led_ros, 'red')
+        self.led_color(self.led_controller, 'red')
+        self.emergency = True
+        self.controller_lister = None
+        self.topic_diag = None
+        self.ros_master = None
+        self.topic_diag = None
+        self.led_motors = {}
+        self.motors = {}
+
     def update_ros_control(self):
         if self.ros_ok:
             try:
@@ -114,27 +133,62 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                         self.led_color(self.led_controllers[c], 'red')
                 self.ros_control_ok = True
                 self.led_color(self.led_controller, GREEN)
-            except rospy.ROSException:
+            except:
                 self.ros_control_ok = False
                 self.led_color(self.led_controller, 'red')
                 return
         else:
             self.led_color(self.led_controller, 'red')
 
+    def update_diagnostics(self):
+        if self.emergency:
+            self.led_color(self.led_emergency, 'red')
+        else:
+            self.led_color(self.led_emergency, GREEN)
+        if len(self.led_motors) == 0:
+            for k in self.motors.keys():
+                self.led_motors[k] = QtWidgets.QRadioButton(k, self.centralwidget)
+                self.led_motors[k].setObjectName(k)
+                self.layout_motors.insertWidget(len(self.layout_motors) - 1, self.led_motors[k])
+        for k in self.led_motors:
+            if self.motors[k]:
+                self.led_color(self.led_motors[k], GREEN)
+            else:
+                self.led_color(self.led_motors[k], 'red')
+
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
+
+    def diag_cb(self, msg):
+        for m in msg.status:
+            if m.name == '/Hardware/Battery':
+                self.label_battery.setText("Battery: " + m.values[0].value)
+            elif m.name == "/Hardware/Control PC/Load Average":
+                print("CPU:", m.values[1].value)# load avg 1-min
+            elif m.name == "/Hardware/Control PC/Emergency Button":
+                if(m.message != ''):
+                    self.emergency = False
+                else:
+                    self.emergency = True                    
+            elif "/Hardware/Motor/"  in m.name:
+                n = m.name.split("/")[-1]
+                if m.message:
+                    self.motors[n] = False
+                else:
+                    self.motors[n] = True
 
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
 
-        # ip
-        self.drop_ip.addItem("localhost")
-        self.drop_ip.addItem("tiago-61c")
-        self.drop_ip.addItem("10.68.1.5")
+        self.label_ros_uri.setStyleSheet("font-weight: bold")
+        self.reinit()
+
+        socket.setdefaulttimeout(0.05)# give 50ms to answer
+
 
         # red leds
-        self.leds = [self.led_robot, self.led_ros, self.led_motors, self.led_controller, self.led_joystick, self.led_geomagic]
+        self.leds = [self.led_robot, self.led_ros, self.led_controller]
         for l in self.leds:
             self.led_color(l, "red")
             l.setDisabled(True)
@@ -144,22 +198,24 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping = QTimer()
         self.timer_ping.timeout.connect(self.update_ping)
         self.ros_ok = False
-        self.timer_ping.start(250)
+        self.timer_ping.start(1000)
 
         # ros
-        self.ros_master = rosgraph.Master('/rostopic')
         self.timer_ros = QTimer()
         self.timer_ros.timeout.connect(self.update_ros_topics)
-        self.timer_ros.start(500)
+        self.timer_ros.start(2000)
         
         # control manager
-        self.controller_lister = None
         self.led_controllers = {}
         self.timer_ros_control = QTimer()
         self.timer_ros_control.timeout.connect(self.update_ros_control)
         self.ros_control_ok = False
-        self.timer_ros_control.start(500)
+        self.timer_ros_control.start(3000)
 
+        # diagnostics (motors, load, etc.)
+        self.timer_diag = QTimer()
+        self.timer_diag.timeout.connect(self.update_diagnostics)
+        self.timer_diag.start(100)# can be fast because only update GUI
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
