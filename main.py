@@ -166,7 +166,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             elif m.name == "/Hardware/Control PC/Load Average":
                 print("CPU:", m.values[1].value)# load avg 1-min
             elif m.name == "/Hardware/Control PC/Emergency Button":
-                if(m.message != ''):
+                if(m.message == ''):
                     self.emergency = False
                 else:
                     self.emergency = True                    
