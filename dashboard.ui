@@ -30,22 +30,16 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QComboBox" name="drop_ip">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="currentText">
-         <string/>
+       <widget class="QRadioButton" name="led_robot">
+        <property name="text">
+         <string>Robot</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_robot">
+       <widget class="QLabel" name="label_ros_uri">
         <property name="text">
-         <string>Robot</string>
+         <string>[ROS URI]</string>
         </property>
        </widget>
       </item>

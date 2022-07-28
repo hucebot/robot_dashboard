@@ -42,6 +42,9 @@ class Ui_RobotDashBoard(object):
         self.led_robot = QtWidgets.QRadioButton(self.centralwidget)
         self.led_robot.setObjectName("led_robot")
         self.verticalLayout.addWidget(self.led_robot)
+        self.label_ros_uri = QtWidgets.QLabel(self.centralwidget)
+        self.label_ros_uri.setObjectName("label_ros_uri")
+        self.verticalLayout.addWidget(self.label_ros_uri)
         self.led_ros = QtWidgets.QRadioButton(self.centralwidget)
         self.led_ros.setObjectName("led_ros")
         self.verticalLayout.addWidget(self.led_ros)
@@ -93,6 +96,7 @@ class Ui_RobotDashBoard(object):
         _translate = QtCore.QCoreApplication.translate
         RobotDashBoard.setWindowTitle(_translate("RobotDashBoard", "MainWindow"))
         self.led_robot.setText(_translate("RobotDashBoard", "Robot"))
+        self.label_ros_uri.setText(_translate("RobotDashBoard", "[ROS URI]"))
         self.led_ros.setText(_translate("RobotDashBoard", "ROS"))
         self.led_motors.setText(_translate("RobotDashBoard", "Motors"))
         self.led_joystick.setText(_translate("RobotDashBoard", "Joystick"))

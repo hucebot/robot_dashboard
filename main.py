@@ -17,6 +17,7 @@ from controller_manager_msgs.utils\
     import ControllerLister, ControllerManagerLister,\
     get_rosparam_controller_names
 
+import socket
 # Local Module Imports
 import dashboard_ui
   
@@ -52,7 +53,7 @@ def dark_style(app):
 GREEN = '#66ff00'
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
-        ip = self.drop_ip.currentText()
+        ip = os.environ["ROS_MASTER_URI"].split('//')[1].split(':')[0]
         try:
             c = subprocess.check_output(["fping", "-c1", "-t60", ip],stderr=subprocess.STDOUT)
             t = c.split(b" ")[5]
@@ -72,44 +73,53 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         #TODO : handle changes in ROS master
         #os.environ["ROS_MASTER_URI"] = "http://" + ip +":11311"
         self.ros_pubs = []
+        self.label_ros_uri.setText("["  + os.environ["ROS_MASTER_URI"] + "]")
+        old_def_timeout = socket.getdefaulttimeout()
         try:
-            self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
-            self.led_color(self.led_ros, GREEN)
-            self.ros_ok = True
+            socket.setdefaulttimeout(0.05)# give 50ms to answer
+            if rosgraph.is_master_online():
+                self.ros_ok = True
+                self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
+            else:
+                self.ros_ok = False     
         except:
-            self.led_color(self.led_ros, 'red')
             self.ros_ok = False
-
-
+        socket.setdefaulttimeout(old_def_timeout)
+        if self.ros_ok:
+            self.led_color(self.led_ros, GREEN)
+        else:
+            self.led_color(self.led_ros, 'red')
+      
     def update_ros_control(self):
         if self.ros_ok:
             try:
                 if self.controller_lister == None:
-                    rospy.wait_for_service('/controller_manager/list_controllers')
+                    rospy.wait_for_service('/controller_manager/list_controllers',timeout=0.05)
                     self.controller_lister = ControllerLister('/controller_manager')
+                self.controller_list = self.controller_lister()
+                self.controller_states = {}
+                for i in self.led_controllers.keys():
+                    self.controller_states[i] = False
+                for c in self.controller_list:
+                    if not c.name in self.led_controllers.keys():
+                        self.led_controllers[c.name] = QtWidgets.QRadioButton(c.name, self.centralwidget)
+                        self.led_controllers[c.name].setObjectName(c.name)
+                        self.verticalLayout.insertWidget(len(self.verticalLayout)-1, self.led_controllers[c.name])
+                    if c.state == 'running':
+                        self.controller_states[c.name] = True
+                for c in self.led_controllers.keys():
+                    if self.controller_states[c]:
+                        self.led_color(self.led_controllers[c], GREEN)
+                    else:
+                        self.led_color(self.led_controllers[c], 'red')
                 self.ros_control_ok = True
                 self.led_color(self.led_controller, GREEN)
             except rospy.ROSException:
                 self.ros_control_ok = False
                 self.led_color(self.led_controller, 'red')
                 return
-        self.controller_list = self.controller_lister()
-        self.controller_states = {}
-        for i in self.led_controllers.keys():
-            self.controller_states[i] = False
-        print(self.controller_states)
-        for c in self.controller_list:
-            if not c.name in self.led_controllers.keys():
-                self.led_controllers[c.name] = QtWidgets.QRadioButton(c.name, self.centralwidget)
-                self.led_controllers[c.name].setObjectName(c.name)
-                self.verticalLayout.insertWidget(len(self.verticalLayout)-1, self.led_controllers[c.name])
-            if c.state == 'running':
-                self.controller_states[c.name] = True
-        for c in self.led_controllers.keys():
-            if self.controller_states[c]:
-                self.led_color(self.led_controllers[c], GREEN)
-            else:
-                self.led_color(self.led_controllers[c], 'red')
+        else:
+            self.led_color(self.led_controller, 'red')
 
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
