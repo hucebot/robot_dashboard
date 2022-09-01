@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>731</width>
-    <height>505</height>
+    <width>1063</width>
+    <height>550</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -127,7 +127,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="layout_plots">
       <item>
        <widget class="MplWidget" name="plot_ping" native="true">
         <property name="sizePolicy">
@@ -142,6 +142,23 @@
           <height>10</height>
          </size>
         </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MplWidget" name="plot_cpu" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>10</height>
+         </size>
+        </property>
+        <layout class="QGridLayout" name="gridLayout"/>
        </widget>
       </item>
      </layout>

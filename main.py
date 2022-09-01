@@ -72,6 +72,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_color(self.led_robot, 'red')
             self.plot_ping.error(True)
         self.plot_ping.set_data(self.ping_queue)
+        self.plot_ping.canvas.ax.set_ylim((0, 30))
 
 
     def update_ros_topics(self):
@@ -165,7 +166,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             if m.name == '/Hardware/Battery':
                 self.label_battery.setText("Battery: " + m.values[0].value)
             elif m.name == "/Hardware/Control PC/Load Average":
-                print("CPU:", m.values[1].value)# load avg 1-min
+                self.cpu_queue.append(float(m.values[1].value))
             elif m.name == "/Hardware/Control PC/Emergency Button":
                 if(m.message == ''):
                     self.emergency = False
@@ -189,6 +190,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                                 self.motors[n] = 0
                             else:
                                 self.motors[n] = 2
+    def update_cpu(self):
+        self.plot_cpu.set_data(self.cpu_queue)
+        self.plot_cpu.canvas.ax.set_ylim((0, 3))
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -229,6 +233,11 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_diag = QTimer()
         self.timer_diag.timeout.connect(self.update_diagnostics)
         self.timer_diag.start(100)# can be fast because only update GUI
+
+        self.cpu_queue = deque([], maxlen = 500)
+        self.timer_cpu = QTimer()
+        self.timer_cpu.timeout.connect(self.update_cpu)
+        self.timer_cpu.start(500)
 
         self.robot = "Tiago"
 

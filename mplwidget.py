@@ -32,7 +32,7 @@ class MplCanvas(Canvas):
         for cont in range(8, 1, -1):
             self.ax.plot(x, self.data, lw=cont, color=line.get_color(), zorder=5, alpha=0.1)
         self.ax.fill_between(x, y1=[0] * len(self.data), y2=self.data, color=line.get_color(), alpha=0.1)
-        self.ax.set_ylim((0, 30))
+        #self.ax.set_ylim((0, 30))
         self.ax.set_xlim((0, len(self.data)))
         
         self.ax.grid(color='#111111', ls='--')
@@ -47,6 +47,8 @@ class MplWidget(QtWidgets.QWidget):
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        
 
     def set_data(self, y):
         self.canvas.set_data(y)
