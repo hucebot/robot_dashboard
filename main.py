@@ -172,13 +172,23 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 else:
                     self.emergency = True                    
             elif "/Hardware/Motor/"  in m.name:
-                n = m.name.split("/")[-1]
-                #print('[' + m.message + ']')
-                mode = m.values[8].value
-                if m.message[0] == ' ':
-                    self.motors[n] = 0 # OK
-                else:
-                    self.motors[n] = 2 # error
+                if self.robot == "Talos":
+                    n = m.name.split("/")[-1]
+                    #print('[' + m.message + ']')
+                    print(m.values)
+                    mode = m.values[8].value
+                    if m.message[0] == ' ':
+                        self.motors[n] = 0 # OK
+                    else:
+                        self.motors[n] = 2 # error
+                else: # Tiago
+                    n = m.name.split("/")[-1] 
+                    for i in m.values:
+                        if i.key == "Errors Detected":
+                            if i.value == "None":
+                                self.motors[n] = 0
+                            else:
+                                self.motors[n] = 2
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -219,6 +229,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_diag = QTimer()
         self.timer_diag.timeout.connect(self.update_diagnostics)
         self.timer_diag.start(100)# can be fast because only update GUI
+
+        self.robot = "Tiago"
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
