@@ -6,6 +6,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
 import matplotlib
 import matplotlib.animation
 import numpy as np
+import copy
+
 # https://stackoverflow.com/questions/36665850/matplotlib-animation-inside-your-own-gui
 # Ensure using PyQt5 backend
 matplotlib.use('QT5Agg')
@@ -21,7 +23,7 @@ class MplCanvas(Canvas):
         self.error = False
 
     def set_data(self, y):
-        self.data = y
+        self.data = copy.deepcopy(y)
         self.ax.clear()
         x = np.arange(0, len(self.data))
         if not self.error :

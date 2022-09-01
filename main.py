@@ -61,21 +61,27 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
         ip = os.environ["ROS_MASTER_URI"].split('//')[1].split(':')[0]
         try:
-            c = subprocess.check_output(["fping", "-c1", "-t60", ip],stderr=subprocess.STDOUT)
+            c = subprocess.check_output(["fping", "-c1", "-t100", ip],stderr=subprocess.STDOUT)
             t = c.split(b" ")[5]
             p = float(t)
             self.ping_queue.append(p)
             self.led_color(self.led_robot, GREEN)
             self.plot_ping.error(False)
-
+            self.robot_ok = True
         except:
             self.led_color(self.led_robot, 'red')
             self.plot_ping.error(True)
+            self.robot_ok = False
         self.plot_ping.set_data(self.ping_queue)
         self.plot_ping.canvas.ax.set_ylim((0, 30))
 
 
     def update_ros_topics(self):
+        self.update_ping()
+        if self.robot_ok == False:
+            self.ros_ok = False
+            self.reinit()
+            return
         self.ros_pubs = []
         self.label_ros_uri.setText("["  + os.environ["ROS_MASTER_URI"] + "]")
         try:
@@ -85,9 +91,11 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                     self.ros_master = rosgraph.Master('/rostopic')
                 self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
             else:
+                print("master is offline")
                 self.ros_ok = False     
         except Exception as e:
             self.ros_ok = False
+            print("Ros: exception")
         if self.ros_ok:
             self.led_color(self.led_ros, GREEN)
         else: # ros is down! let' s reinit everything
@@ -108,8 +116,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.ros_master = None
         self.topic_diag = None
         self.motors = {}
+        for k in self.led_motors.keys():
+            self.led_color(self.led_motors[k], 'red')
 
     def update_ros_control(self):
+        # always check ROS (again)
+        self.update_ros_topics()
         if self.ros_ok:
             try:
                 if self.controller_lister == None:
@@ -151,17 +163,22 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.led_motors[k].setObjectName(k)
                 self.layout_motors.insertWidget(len(self.layout_motors) - 1, self.led_motors[k])
         for k in self.led_motors:
-            if self.motors[k] == 0:
-                self.led_color(self.led_motors[k], GREEN)
-            elif self.motors[k] == 1:
-                self.led_color(self.led_motors[k], 'black')
+            if k in self.motors.keys():
+                if self.motors[k] == 0:
+                    self.led_color(self.led_motors[k], GREEN)
+                elif self.motors[k] == 1:
+                    self.led_color(self.led_motors[k], 'black')
+                else:
+                    self.led_color(self.led_motors[k], 'red')
             else:
                 self.led_color(self.led_motors[k], 'red')
+
 
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
 
     def diag_cb(self, msg):
+        print("diag cb")
         for m in msg.status:
             if m.name == '/Hardware/Battery':
                 self.label_battery.setText("Battery: " + m.values[0].value)
@@ -190,18 +207,19 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                                 self.motors[n] = 0
                             else:
                                 self.motors[n] = 2
+
     def update_cpu(self):
         self.plot_cpu.set_data(self.cpu_queue)
-        self.plot_cpu.canvas.ax.set_ylim((0, 3))
+        self.plot_cpu.canvas.ax.set_ylim((0, 10))
 
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
 
         self.label_ros_uri.setStyleSheet("font-weight: bold")
-        self.reinit()
         self.led_motors={}
-        socket.setdefaulttimeout(0.05)# give 50ms to answer
+        self.reinit()
+        socket.setdefaulttimeout(0.1)# give 100ms to answer
 
 
         # red leds
@@ -215,6 +233,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping = QTimer()
         self.timer_ping.timeout.connect(self.update_ping)
         self.ros_ok = False
+        self.robot_ok = False
         self.timer_ping.start(1000)
 
         # ros
