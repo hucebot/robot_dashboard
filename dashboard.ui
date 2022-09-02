@@ -161,6 +161,17 @@
         <layout class="QGridLayout" name="gridLayout"/>
        </widget>
       </item>
+      <item>
+       <widget class="MplWidget" name="plot_solver" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2"/>
+       </widget>
+      </item>
      </layout>
     </item>
    </layout>

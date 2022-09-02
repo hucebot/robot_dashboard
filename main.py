@@ -17,7 +17,7 @@ from controller_manager_msgs.utils\
     import ControllerLister, ControllerManagerLister,\
     get_rosparam_controller_names
 from diagnostic_msgs.msg import DiagnosticArray
-
+from std_msgs.msg import Float64MultiArray
 import socket
 
 
@@ -90,7 +90,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.ros_ok = True
                 if self.ros_master == None:
                     self.ros_master = rosgraph.Master('/rostopic')
-                self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
+                #self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
             else:
                 print("master is offline")
                 self.ros_ok = False     
@@ -106,6 +106,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
             print("subscribed to /diagnostics_agg")
+        if self.ros_ok and self.controller_lister != None and self.topic_solver == None:
+            self.topic_solver = rospy.Subscriber("/talos_controller/iwbc_timings", Float64MultiArray, self.solver_cb)
+
 
     def reinit(self):
         print("reinit")
@@ -116,9 +119,18 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.topic_diag = None
         self.ros_master = None
         self.topic_diag = None
+        self.topic_solver = None
         self.motors = {}
+        # remove the LEDS (widgets)
         for k in self.led_motors.keys():
-            self.led_color(self.led_motors[k], 'red')
+            self.layout_motors.removeWidget(self.led_motors[k])
+            self.led_motors[k].deleteLater()
+        self.led_motors = {}
+        for k in self.led_controllers.keys():
+            self.verticalLayout.removeWidget(self.led_controllers[k])
+            self.led_controllers[k].deleteLater()
+        self.led_controllers = {}
+
 
     def update_ros_control(self):
         # always check ROS (again)
@@ -209,12 +221,16 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                                 self.motors[n] = 0
                             else:
                                 self.motors[n] = 2
+    
+    # ROS callback for the solver (not GUI callback)
+    def solver_cb(self, msg):
+        self.solver_queue.append(self.data)
 
     def update_cpu(self):
         if not self.robot_ok :
-            self.plot_ping.error(True)
+            self.plot_cpu.error(True)
         else:
-            self.plot_ping.error(False)
+            self.plot_cpu.error(False)
         self.plot_cpu.set_data(self.cpu_queue)
         self.plot_cpu.canvas.ax.set_ylim((0, 10))
 
@@ -225,7 +241,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.led_motors={}
-        self.reinit()
         socket.setdefaulttimeout(0.1)# give 100ms to answer
 
 
@@ -264,6 +279,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_cpu = QTimer()
         self.timer_cpu.timeout.connect(self.update_cpu)
         self.timer_cpu.start(500)
+
+        self.solver_queue = deque([], maxlen=100)
+        self.reinit()
 
         self.robot = "Talos"
 
