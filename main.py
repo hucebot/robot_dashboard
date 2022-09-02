@@ -27,7 +27,8 @@ import dashboard_ui
 # a nice green for LEDS
 GREEN = '#66ff00'
 
-
+from PyQt5.QtWidgets import QStyleFactory; 
+print(QStyleFactory.keys())
 def dark_style(app):
     # set a dark theme to the app!
     app.setStyle('fusion')
@@ -95,7 +96,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.ros_ok = False     
         except Exception as e:
             self.ros_ok = False
-            print("Ros: exception")
+            print("Ros: exception",e)
         if self.ros_ok:
             self.led_color(self.led_ros, GREEN)
         else: # ros is down! let' s reinit everything
@@ -159,7 +160,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_color(self.led_emergency, GREEN)
         if len(self.led_motors) == 0:
             for k in self.motors.keys():
-                self.led_motors[k] = QtWidgets.QRadioButton(k, self.centralwidget)
+                self.led_motors[k] = QtWidgets.QRadioButton(k.replace('_motor',''), self.centralwidget)
                 self.led_motors[k].setObjectName(k)
                 self.layout_motors.insertWidget(len(self.layout_motors) - 1, self.led_motors[k])
         for k in self.led_motors:
@@ -177,8 +178,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def led_color(self, b, color):
         b.setStyleSheet("QRadioButton::indicator {width: 14px; height: 14px; border-radius: 7px;} QRadioButton::indicator:unchecked { background-color:" + color + "}")
 
+
+    # this is the callback used by ROS, not by PyQT
     def diag_cb(self, msg):
-        print("diag cb")
         for m in msg.status:
             if m.name == '/Hardware/Battery':
                 self.label_battery.setText("Battery: " + m.values[0].value)
@@ -193,7 +195,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 if self.robot == "Talos":
                     n = m.name.split("/")[-1]
                     #print('[' + m.message + ']')
-                    print(m.values)
+                    #print(m.values)
                     mode = m.values[8].value
                     if m.message[0] == ' ':
                         self.motors[n] = 0 # OK
@@ -209,8 +211,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                                 self.motors[n] = 2
 
     def update_cpu(self):
+        if not self.robot_ok :
+            self.plot_ping.error(True)
+        else:
+            self.plot_ping.error(False)
         self.plot_cpu.set_data(self.cpu_queue)
         self.plot_cpu.canvas.ax.set_ylim((0, 10))
+
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -258,7 +265,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_cpu.timeout.connect(self.update_cpu)
         self.timer_cpu.start(500)
 
-        self.robot = "Tiago"
+        self.robot = "Talos"
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
