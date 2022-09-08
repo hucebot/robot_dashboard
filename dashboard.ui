@@ -58,9 +58,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_battery">
+       <widget class="QRadioButton" name="led_battery">
         <property name="text">
-         <string>Battery: [?]</string>
+         <string>Battery</string>
         </property>
        </widget>
       </item>
