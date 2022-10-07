@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1063</width>
-    <height>550</height>
+    <height>774</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -129,6 +129,16 @@
     <item>
      <layout class="QVBoxLayout" name="layout_plots">
       <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Ping (ms)&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::RichText</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="MplWidget" name="plot_ping" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -141,6 +151,13 @@
           <width>0</width>
           <height>10</height>
          </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Load average&lt;/b&gt;&lt;/center&gt;</string>
         </property>
        </widget>
       </item>
@@ -159,6 +176,13 @@
          </size>
         </property>
         <layout class="QGridLayout" name="gridLayout"/>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Solver time (ms)&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
        </widget>
       </item>
       <item>

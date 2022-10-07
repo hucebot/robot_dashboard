@@ -8,6 +8,8 @@ import sys, os
 import subprocess 
 from collections import deque
 
+import yaml
+
 import rostopic
 import rosgraph
 import rospy
@@ -61,9 +63,10 @@ def dark_style(app):
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
-        ip = os.environ["ROS_MASTER_URI"].split('//')[1].split(':')[0]
+        ip = self.conf['ip']
         try:
-            c = subprocess.check_output(["fping", "-c1", "-t100", ip],stderr=subprocess.STDOUT)
+            t = "-t" + str(self.conf['ping_timeout'])
+            c = subprocess.check_output(["fping", "-c1", t, ip], stderr=subprocess.STDOUT)
             t = c.split(b" ")[5]
             p = float(t)
             self.ping_queue.append(p)
@@ -86,12 +89,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.reinit()
             return
         self.ros_pubs = []
+        os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['ip'] + ':11311'
         self.label_ros_uri.setText("["  + os.environ["ROS_MASTER_URI"] + "]")
+        if self.ros_master == None:
+            self.ros_master = rosgraph.Master('/rostopic', os.environ["ROS_MASTER_URI"])
         try:
-            if rosgraph.is_master_online():
+            if self.ros_master.is_online():
                 self.ros_ok = True
-                if self.ros_master == None:
-                    self.ros_master = rosgraph.Master('/rostopic')
                 #self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
             else:
                 print("master is offline")
@@ -109,7 +113,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if self.ros_ok and self.topic_diag == None:
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
-            print("subscribed to /diagnostics_agg")
+            #print("subscribed to /diagnostics_agg")
         
        
 
@@ -253,7 +257,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.plot_cpu.error(True)
         else:
             self.plot_cpu.error(False)
-            self.plot_cpu.set_data(self.cpu_queue)
+            if (len(self.cpu_queue) != 0):
+                self.plot_cpu.set_data(self.cpu_queue)
         self.plot_cpu.canvas.ax.set_ylim((0, 10))
 
     def update_solver(self):
@@ -261,17 +266,25 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.plot_solver.error(True)
         else:
             self.plot_solver.error(False)
-        self.plot_solver.set_data(self.solver_queue)
+        if len(self.solver_queue) != 0:
+            self.plot_solver.set_data(self.solver_queue)
         #self.plot_solver.canvas.ax.set_ylim((0, 10))
 
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
 
+        if not "yaml" in sys.argv[-1]:
+            print('usage: {} robot.yaml'.format(sys.argv[0]))
+            sys.exit(1)
+        self.conf = yaml.full_load(open(sys.argv[-1]))
+        print("loaded: ", sys.argv[-1])
+        self.robot = self.conf["name"]
+
         self.battery_value = 0
         self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.led_motors={}
-        socket.setdefaulttimeout(0.1)# give 100ms to answer
+        socket.setdefaulttimeout(float(self.conf['socket_timeout']))# give 100ms to answer
 
 
         # red leds
@@ -286,19 +299,19 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping.timeout.connect(self.update_ping)
         self.ros_ok = False
         self.robot_ok = False
-        self.timer_ping.start(1000)
+        self.timer_ping.start(int(self.conf['ping_period']))
 
         # ros
         self.timer_ros = QTimer()
         self.timer_ros.timeout.connect(self.update_ros_topics)
-        self.timer_ros.start(2000)
+        self.timer_ros.start(int(self.conf['ros_period']))
         
         # control manager
         self.led_controllers = {}
         self.timer_ros_control = QTimer()
         self.timer_ros_control.timeout.connect(self.update_ros_control)
         self.ros_control_ok = False
-        self.timer_ros_control.start(3000)
+        self.timer_ros_control.start(int(self.conf['ros_control_period']))
 
         # diagnostics (motors, load, etc.)
         self.timer_diag = QTimer()
@@ -308,15 +321,14 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.cpu_queue = deque([], maxlen = 50)
         self.timer_cpu = QTimer()
         self.timer_cpu.timeout.connect(self.update_cpu)
-        self.timer_cpu.start(500)
+        self.timer_cpu.start(100)
 
         self.solver_queue = deque([], maxlen=50)
         self.reinit()
         self.timer_solver = QTimer()
         self.timer_solver.timeout.connect(self.update_solver)
-        self.timer_solver.start(500)
+        self.timer_solver.start(100)
 
-        self.robot = "Talos"
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
