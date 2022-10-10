@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import inspect
 
 import sys, os
 import subprocess 
@@ -96,7 +97,15 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         try:
             if self.ros_master.is_online():
                 self.ros_ok = True
-                #self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
+                self.ros_pubs, self.ros_subs = rostopic.get_topic_list(master=self.ros_master)
+                ros_pubs_names = [item[0] for item in self.ros_pubs]
+                for i in self.topic_list:
+                    if i in ros_pubs_names:
+                        self.led_color(self.led_topics[i], GREEN)
+                    else:
+                        self.led_color(self.led_topics[i], 'red')
+
+
             else:
                 print("master is offline")
                 self.ros_ok = False     
@@ -113,14 +122,16 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if self.ros_ok and self.topic_diag == None:
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
-            #print("subscribed to /diagnostics_agg")
+            print("subscribed to /diagnostics_agg")
         
        
 
     def reinit(self):
-        print("reinit")
+        frame = inspect.stack()[1]
+        print("reinit, called from:", frame[3] + " line:", frame.frame.f_lineno)
         self.led_color(self.led_ros, 'red')
         self.led_color(self.led_controller, 'red')
+        self.led_color(self.led_battery, 'red')
         self.emergency = True
         self.controller_lister = None
         self.topic_diag = None
@@ -188,7 +199,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_color(self.led_emergency, GREEN)
         # battery
         self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
-        if self.battery_value < 20:
+        if self.battery_value < 20 or self.ros_ok != True:
             self.led_color(self.led_battery, 'red')
         elif self.battery_value < 60:
             self.led_color(self.led_battery, 'orange')
@@ -299,13 +310,22 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping.timeout.connect(self.update_ping)
         self.ros_ok = False
         self.robot_ok = False
-        self.timer_ping.start(int(self.conf['ping_period']))
+        self.timer_ping.start(1000 * float(self.conf['ping_period']))
 
         # ros
         self.timer_ros = QTimer()
         self.timer_ros.timeout.connect(self.update_ros_topics)
         self.timer_ros.start(int(self.conf['ros_period']))
-        
+
+        # topic list
+        self.topic_list = self.conf['topics']
+        self.led_topics = {}
+        for k in self.topic_list:
+            self.led_topics[k] = QtWidgets.QRadioButton(k, self.centralwidget)
+            self.led_topics[k].setObjectName(k)
+            self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
+            self.led_color(self.led_topics[k], 'red')
+
         # control manager
         self.led_controllers = {}
         self.timer_ros_control = QTimer()

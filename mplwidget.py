@@ -54,8 +54,8 @@ class MplWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent)
         self.canvas = MplCanvas()
         self.vbl = QtWidgets.QVBoxLayout()
-        self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
+        self.vbl.addWidget(self.canvas)
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         
