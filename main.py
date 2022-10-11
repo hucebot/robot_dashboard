@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
@@ -92,6 +93,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.ros_pubs = []
         os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['ip'] + ':11311'
         self.label_ros_uri.setText("["  + os.environ["ROS_MASTER_URI"] + "]")
+        prev_ros = self.ros_ok
         if self.ros_master == None:
             self.ros_master = rosgraph.Master('/rostopic', os.environ["ROS_MASTER_URI"])
         try:
@@ -112,6 +114,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         except Exception as e:
             self.ros_ok = False
             print("Ros: exception",e)
+    
         if self.ros_ok:
             self.led_color(self.led_ros, GREEN)
         else: # ros is down! let' s reinit everything
@@ -122,7 +125,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if self.ros_ok and self.topic_diag == None:
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
-            print("subscribed to /diagnostics_agg")
         
        
 
@@ -134,7 +136,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.led_color(self.led_battery, 'red')
         self.emergency = True
         self.controller_lister = None
-        self.topic_diag = None
         self.ros_master = None
         self.topic_diag = None
         self.topic_solver = None
@@ -149,6 +150,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.verticalLayout.removeWidget(self.led_controllers[k])
             self.led_controllers[k].deleteLater()
         self.led_controllers = {}
+        for k in self.led_topics:
+            self.led_color(self.led_topics[k],'red')
 
 
     def update_ros_control(self):
@@ -206,6 +209,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         else:
             self.led_color(self.led_battery, GREEN)                
 
+        print("#motors:", len(self.motors), self.motors.keys(), '#led motors', len(self.led_motors))
         if len(self.led_motors) == 0:
             for k in self.motors.keys():
                 self.led_motors[k] = QtWidgets.QRadioButton(k.replace('_motor',''), self.centralwidget)
@@ -229,28 +233,31 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
     # this is the callback used by ROS, not by PyQT
     def diag_cb(self, msg):
+        print('diag cb')
         for m in msg.status:
             if m.name == '/Hardware/Battery':
                 self.battery_value = float(m.values[0].value.replace("%",''))  
             elif m.name == "/Hardware/Control PC/Load Average":
                 self.cpu_queue.append(float(m.values[1].value))
             elif m.name == "/Hardware/Control PC/Emergency Button":
-                if(m.message == ''):
-                    self.emergency = False
-                else:
-                    self.emergency = True                    
+                if self.robot == 'Tiago':# Tiago cannot boot with emergency activated
+                    self.emergency = False # => if we are here, the emergency is OK
+                else: # Talos has emergency messages
+                    if(m.message == ''):
+                        self.emergency = False
+                    else:
+                        self.emergency = True                    
             elif "/Hardware/Motor/"  in m.name:
                 if self.robot == "Talos":
                     n = m.name.split("/")[-1]
-                    #print('[' + m.message + ']')
-                    #print(m.values)
                     mode = m.values[8].value
                     if m.message[0] == ' ':
                         self.motors[n] = 0 # OK
                     else:
                         self.motors[n] = 2 # error
                 else: # Tiago
-                    n = m.name.split("/")[-1] 
+                    n = m.name.split("/")[-1]
+                    print(n)
                     for i in m.values:
                         if i.key == "Errors Detected":
                             if i.value == "None":
@@ -297,6 +304,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.led_motors={}
         socket.setdefaulttimeout(float(self.conf['socket_timeout']))# give 100ms to answer
 
+
+        self.topic_diag = None
 
         # red leds
         self.leds = [self.led_robot, self.led_ros, self.led_controller]
