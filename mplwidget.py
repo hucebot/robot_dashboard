@@ -45,7 +45,7 @@ class MplCanvas(Canvas):
         if len(self.data) > 0:
             self.ax.set_xlim((0, len(self.data)))
         
-        self.ax.grid(color='#111111', ls='--')
+        self.ax.grid(color='#555555', ls='--',lw=1)
         self.draw_idle()
 
 # Matplotlib widget
