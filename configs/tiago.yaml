@@ -1,0 +1,6 @@
+name: Tiago
+socket_timeout: 0.1
+ping_period: 1.0
+ip: 192.168.1.62
+ros_control_period: 0.1
+ros_period: 0.1
