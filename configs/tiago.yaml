@@ -1,6 +1,6 @@
 name: Tiago
 socket_timeout: 0.1
-ping_period: 0.1
+ping_period: 0.5
 ping_timeout: 0.5
 ip: localhost
 ros_control_period: 0.1

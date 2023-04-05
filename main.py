@@ -14,8 +14,9 @@ import time
 import subprocess
 from collections import deque
 import socket
-
+import numpy as np
 import yaml
+import pyqtgraph as pg
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -105,15 +106,17 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if not self.ping_thread.error:
             self.ping_queue.append(p)
             self.led_color(self.led_robot, GREEN)
-            self.plot_ping.error(False)
+            #self.plot_ping.error(False)
             self.robot_ok = True
         else:
             self.led_color(self.led_robot, 'red')
-            self.plot_ping.error(True)
+            #self.plot_ping.error(True)
             self.robot_ok = False
             self.ping_queue.append(100)  # put a big value to have it on plot
-        self.plot_ping.set_data(self.ping_queue)
-        self.plot_ping.canvas.ax.set_ylim((0, 30))
+       #self.plot_ping.set_data(self.ping_queue)
+        self.ping_data_line_bg.setData(np.arange(len(self.ping_queue)),self.ping_queue)
+        self.ping_data_line.setData(np.arange(len(self.ping_queue)),self.ping_queue)
+        #self.plot_ping.canvas.ax.set_ylim((0, 30))
 
     def update_ros_topics(self):
         self.update_ping()
@@ -310,13 +313,14 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.solver_queue.append(self.data[0])
 
     def update_cpu(self):
-        if not self.robot_ok:
-            self.plot_cpu.error(True)
-        else:
-            self.plot_cpu.error(False)
-            if (len(self.cpu_queue) != 0):
-                self.plot_cpu.set_data(self.cpu_queue)
-        self.plot_cpu.canvas.ax.set_ylim((0, 10))
+        pass
+        # if not self.robot_ok:
+        #     self.plot_cpu.error(True)
+        # else:
+        #     self.plot_cpu.error(False)
+        #     if (len(self.cpu_queue) != 0):
+        #         self.plot_cpu.set_data(self.cpu_queue)
+        # self.plot_cpu.canvas.ax.set_ylim((0, 10))
 
     def update_solver(self):
         if not self.controller_running:
@@ -352,6 +356,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_color(l, "red")
             l.setDisabled(True)
 
+
         # ping
         self.ping_thread = PingThread(self.conf)
         self.ping_thread.start()
@@ -360,6 +365,11 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping.timeout.connect(self.update_ping)
         self.ros_ok = False
         self.robot_ok = False
+
+        self.plot_ping.showGrid(x=True, y=True)
+        self.ping_data_line_bg = self.plot_ping.plot([], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
+        self.ping_data_line = self.plot_ping.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
+
         self.timer_ping.start(int(1000 * float(self.conf['ping_period'])))
         
         # ros
