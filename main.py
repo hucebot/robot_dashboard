@@ -12,17 +12,25 @@ from collections import deque
 
 import yaml
 
-import rostopic
-import rosgraph
-import rospy
-from controller_manager_msgs.msg import ControllerState
-from controller_manager_msgs.srv import *
-from controller_manager_msgs.utils\
-    import ControllerLister, ControllerManagerLister,\
-    get_rosparam_controller_names
-from diagnostic_msgs.msg import DiagnosticArray
-from std_msgs.msg import Float64MultiArray
-from talos_controller_msgs.msg import float64_array
+# we can start without ROS (to debug in a train, on Mac, etc.)
+USE_ROS = True
+try: 
+    import rostopic
+    import rosgraph
+    import rospy
+    from controller_manager_msgs.msg import ControllerState
+    from controller_manager_msgs.srv import *
+    from controller_manager_msgs.utils\
+        import ControllerLister, ControllerManagerLister,\
+        get_rosparam_controller_names
+    from diagnostic_msgs.msg import DiagnosticArray
+    from std_msgs.msg import Float64MultiArray
+    from talos_controller_msgs.msg import float64_array
+except Exception as e:
+    print("WARNING, ROS disabled: CANNOT IMPORT ROS")
+    print(e)
+    USE_ROS = False
+
 import socket
 
 
@@ -322,41 +330,41 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.timer_ping.start(1000 * float(self.conf['ping_period']))
 
         # ros
-        self.timer_ros = QTimer()
-        self.timer_ros.timeout.connect(self.update_ros_topics)
-        self.timer_ros.start(int(self.conf['ros_period']))
+        if USE_ROS:
+            self.timer_ros = QTimer()
+            self.timer_ros.timeout.connect(self.update_ros_topics)
+            self.timer_ros.start(int(self.conf['ros_period']))
 
-        # topic list
-        self.topic_list = self.conf['topics']
-        self.led_topics = {}
-        for k in self.topic_list:
-            self.led_topics[k] = QtWidgets.QRadioButton(k, self.centralwidget)
-            self.led_topics[k].setObjectName(k)
-            self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
-            self.led_color(self.led_topics[k], 'red')
+            # topic list
+            self.topic_list = self.conf['topics']
+            self.led_topics = {}
+            for k in self.topic_list:
+                self.led_topics[k] = QtWidgets.QRadioButton(k, self.centralwidget)
+                self.led_topics[k].setObjectName(k)
+                self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
+                self.led_color(self.led_topics[k], 'red')
 
-        # control manager
-        self.led_controllers = {}
-        self.timer_ros_control = QTimer()
-        self.timer_ros_control.timeout.connect(self.update_ros_control)
-        self.ros_control_ok = False
-        self.timer_ros_control.start(int(self.conf['ros_control_period']))
+            self.led_controllers = {}
+            self.timer_ros_control = QTimer()
+            self.timer_ros_control.timeout.connect(self.update_ros_control)
+            self.ros_control_ok = False
+            self.timer_ros_control.start(int(self.conf['ros_control_period']))
 
-        # diagnostics (motors, load, etc.)
-        self.timer_diag = QTimer()
-        self.timer_diag.timeout.connect(self.update_diagnostics)
-        self.timer_diag.start(100)# can be fast because only update GUI
+            # diagnostics (motors, load, etc.)
+            self.timer_diag = QTimer()
+            self.timer_diag.timeout.connect(self.update_diagnostics)
+            self.timer_diag.start(100)# can be fast because only update GUI
 
-        self.cpu_queue = deque([], maxlen = 50)
-        self.timer_cpu = QTimer()
-        self.timer_cpu.timeout.connect(self.update_cpu)
-        self.timer_cpu.start(100)
+            self.cpu_queue = deque([], maxlen = 50)
+            self.timer_cpu = QTimer()
+            self.timer_cpu.timeout.connect(self.update_cpu)
+            self.timer_cpu.start(100)
 
-        self.solver_queue = deque([], maxlen=50)
-        self.reinit()
-        self.timer_solver = QTimer()
-        self.timer_solver.timeout.connect(self.update_solver)
-        self.timer_solver.start(100)
+            self.solver_queue = deque([], maxlen=50)
+            self.reinit()
+            self.timer_solver = QTimer()
+            self.timer_solver.timeout.connect(self.update_solver)
+            self.timer_solver.start(100)
 
 
 def main():
