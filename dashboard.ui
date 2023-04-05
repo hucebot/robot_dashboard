@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>731</width>
-    <height>505</height>
+    <width>1063</width>
+    <height>774</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+   <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -30,9 +30,9 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QComboBox" name="drop_ip">
-        <property name="currentText">
-         <string/>
+       <widget class="QLabel" name="label_ros_uri">
+        <property name="text">
+         <string>http://localhost:11311</string>
         </property>
        </widget>
       </item>
@@ -44,6 +44,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QRadioButton" name="led_emergency">
+        <property name="text">
+         <string>Emergency Stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QRadioButton" name="led_ros">
         <property name="text">
          <string>ROS</string>
@@ -51,32 +58,41 @@
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_motors">
+       <widget class="QRadioButton" name="led_battery">
         <property name="text">
-         <string>Motors</string>
+         <string>Battery</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QRadioButton" name="led_controller">
         <property name="text">
-         <string>IWBC Controller</string>
+         <string>Controller Manager</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_joystick">
-        <property name="text">
-         <string>Joystick</string>
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="led_geomagic">
-        <property name="text">
-         <string>Geomagic</string>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
         </property>
-       </widget>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>10</height>
+         </size>
+        </property>
+       </spacer>
       </item>
       <item>
        <spacer name="verticalSpacer">
@@ -94,20 +110,124 @@
      </layout>
     </item>
     <item>
-     <widget class="MplWidget" name="plot_ping" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>10</height>
-       </size>
-      </property>
-     </widget>
+     <layout class="QVBoxLayout" name="layout_motors">
+      <item>
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>&lt;b&gt;Motors&lt;/b&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="layout_topics">
+      <item>
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>&lt;b&gt;Topics&lt;/b&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_4">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="layout_plots">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Ping (ms)&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::RichText</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MplWidget" name="plot_ping" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>10</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Load average&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MplWidget" name="plot_cpu" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>10</height>
+         </size>
+        </property>
+        <layout class="QGridLayout" name="gridLayout"/>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Solver time (ms)&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MplWidget" name="plot_solver" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2"/>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
