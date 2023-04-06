@@ -351,15 +351,11 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.plot_solver.set_data(self.solver_queue)
         # self.plot_solver.canvas.ax.set_ylim((0, 10))
 
-    def __init__(self):
+    def __init__(self, conf):
         super(self.__class__, self).__init__()
         self.setupUi(self)
+        self.conf = conf
 
-        if not "yaml" in sys.argv[-1]:
-            print('usage: {} robot.yaml'.format(sys.argv[0]))
-            sys.exit(1)
-        self.conf = yaml.full_load(open(sys.argv[-1]))
-        print("loaded: ", sys.argv[-1])
         self.robot = self.conf["name"]
 
         self.button_quit.clicked.connect(QApplication.quit)
@@ -424,22 +420,34 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
 def main():
 
+    if not "yaml" in sys.argv[-1]:
+        print('usage: {} robot.yaml'.format(sys.argv[0]))
+        sys.exit(1)
+    conf = yaml.full_load(open(sys.argv[-1]))
+    print("loaded: ", sys.argv[-1])
+
     app = QtWidgets.QApplication(sys.argv)
     dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
-    dashboard = Dashboard()
+    dashboard = Dashboard(conf)
     dashboard.setGeometry(
         0, 0, int(screen_size.width()/2), screen_size.height())
     dashboard.show()
 
-    video = GstreamerWindow()
+    video = GstreamerWindow(conf)
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
     video.show()
     dashboard.raise_()
+    
+    video.thread.ready.connect(dashboard.led_gstreamer.set_state)
+
+    
     app.exec_()
+
+
 
 
 if __name__ == '__main__':

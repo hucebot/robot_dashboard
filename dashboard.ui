@@ -221,7 +221,7 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QRadioButton" name="led_gstreamer">
+       <widget class="Led" name="led_gstreamer">
         <property name="text">
          <string>Gstreamer</string>
         </property>
@@ -230,7 +230,7 @@
       <item>
        <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>UDP Port:</string>
+         <string>Source:</string>
         </property>
        </widget>
       </item>

@@ -11,11 +11,12 @@ gi.require_version('Gst', '1.0')
 # to test:
 # videotestsrc pattern=ball ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000
 
-class GStreamerFeed:
-    def __init__(self):
+class GStreamerFeed:    
+    def __init__(self, launch:str):
+        # everything is delayed for connect
         Gst.init(None)
         #self.player = Gst.parse_launch('filesrc location=/Users/jmouret/Movies/teleop-short_1min.mp4 name=src ! decodebin !  videoconvert ! video/x-raw, format=RGB !appsink name=sink emit-signals=true')
-        self.player = Gst.parse_launch('udpsrc port=5000 ! application/x-rtp, payload=96 ! rtpjitterbuffer ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB !appsink name=sink emit-signals=true')
+        self.player = Gst.parse_launch(launch)
         self.appsink = self.player.get_by_name('sink')
         self.appsink.connect("new-sample", self.__new_frame, self.appsink)
 

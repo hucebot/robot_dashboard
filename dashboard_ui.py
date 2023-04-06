@@ -110,7 +110,7 @@ class Ui_RobotDashBoard(object):
         self.horizontalLayout.addLayout(self.layout_plots)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.led_gstreamer = QtWidgets.QRadioButton(self.centralwidget)
+        self.led_gstreamer = Led(self.centralwidget)
         self.led_gstreamer.setObjectName("led_gstreamer")
         self.verticalLayout_2.addWidget(self.led_gstreamer)
         self.label_3 = QtWidgets.QLabel(self.centralwidget)

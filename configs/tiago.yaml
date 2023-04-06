@@ -6,3 +6,4 @@ ping_plot_max: 1 # 1 ms is already a lot for localhost
 ip: localhost
 ros_control_period: 0.1
 ros_period: 0.1
+gstreamer_launch: "udpsrc port=5000 ! application/x-rtp, payload=96 ! rtpjitterbuffer ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB !appsink name=sink emit-signals=true"

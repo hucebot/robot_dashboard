@@ -15,17 +15,25 @@ from gstreamer_feed import GStreamerFeed
 
 class GstreamerThread(QThread):
     change_pixmap_signal = pyqtSignal(np.ndarray)
+    ready = pyqtSignal(int)
+
+    def __init__(self, launch:str=''):
+        super().__init__()
+        self.launch = launch
 
     def run(self):
-        # capture from web cam
-        self.cap = GStreamerFeed()
+        self.cap = GStreamerFeed(self.launch)
         self.cap.start()
-
         self.__run = True
+        first  = True
+        self.ready.emit(2)
         while True:
             if self.cap.isFrameReady() and self.__run:
                 np_img = self.cap.getFrame()
                 self.change_pixmap_signal.emit(np_img)
+                if first:
+                    self.ready.emit(1)
+                    first = False
 
     def taskStop(self):
         self.__run = False
@@ -36,26 +44,20 @@ class GstreamerThread(QThread):
 
 
 class GstreamerWindow(QWidget):
-    def __init__(self):
+    def __init__(self, conf):
         super().__init__()
+        self.conf = conf
         self.setWindowTitle("Camera")
-        
-        self.display_width = 1540
-        self.display_height = 1280
+
         # create the label that holds the image
         self.image_label = QLabel(self)
-        self.image_label.resize(self.display_width, self.display_height)
+        self.image_label.resize(self.width(), self.height())
 
-
-        # create a vertical box layout and add the widget
         vbox = QVBoxLayout()
         vbox.addWidget(self.image_label)
-        # set the vbox layout as the widgets layout
         self.setLayout(vbox)
 
-        # create the video capture thread
-        self.thread = GstreamerThread()
-        # connect its signal to the update_image slot
+        self.thread = GstreamerThread(self.conf['gstreamer_launch'])
         self.thread.change_pixmap_signal.connect(self.update_image)
         # start the thread
         self.thread.start()
