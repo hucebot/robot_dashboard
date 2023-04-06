@@ -8,6 +8,9 @@ gi.require_version('Gst', '1.0')
 # https://gist.github.com/hum4n0id/cda96fb07a34300cdb2c0e314c14df0a#send-a-test-video-with-h264-rtp-stream
 # https://stackoverflow.com/questions/39565204/how-to-make-rtpjitterbuffer-work-on-a-stream-without-timestamps
 
+# to test:
+# videotestsrc pattern=ball ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000
+
 class GStreamerFeed:
     def __init__(self):
         Gst.init(None)

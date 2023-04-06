@@ -40,8 +40,8 @@ class GstreamerWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Camera")
         
-        self.display_width = 540
-        self.display_height = 280
+        self.display_width = 1540
+        self.display_height = 1280
         # create the label that holds the image
         self.image_label = QLabel(self)
         self.image_label.resize(self.display_width, self.display_height)

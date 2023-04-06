@@ -76,6 +76,23 @@ def dark_style(app):
         "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
     # end of dark theme
 
+# all the plots follow the same style
+class Plot:
+    def __init__(self, widget, min=None, max=None):
+        self.widget = widget
+        self.widget.showGrid(x=True, y=True)
+        self.line_bg = self.widget.plot([], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
+        self.line = self.widget.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
+        self.error = False
+        if min != None:
+            assert(max != None)
+            self.widget.setYRange(min, max)
+
+    def update(self, data):
+        self.line_bg.setData(np.arange(len(data)), data)
+        self.line.setData(np.arange(len(data)), data)
+
+
 # ping is blocking and we do not want that
 class PingThread(QThread):
     def __init__(self, conf):
@@ -102,21 +119,18 @@ class PingThread(QThread):
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
-        p = self.ping_thread.ping
-        if not self.ping_thread.error:
-            self.ping_queue.append(p)
+        p = self.thread_ping.ping
+        if not self.thread_ping.error:
+            self.queue_ping.append(p)
             self.led_color(self.led_robot, GREEN)
-            #self.plot_ping.error(False)
+            self.plot_ping.error = False
             self.robot_ok = True
         else:
             self.led_color(self.led_robot, 'red')
-            #self.plot_ping.error(True)
+            self.plot_ping.error  = True
             self.robot_ok = False
-            self.ping_queue.append(100)  # put a big value to have it on plot
-       #self.plot_ping.set_data(self.ping_queue)
-        self.ping_data_line_bg.setData(np.arange(len(self.ping_queue)),self.ping_queue)
-        self.ping_data_line.setData(np.arange(len(self.ping_queue)),self.ping_queue)
-        #self.plot_ping.canvas.ax.set_ylim((0, 30))
+            self.queue_ping.append(100)  # put a big value to have it on plot
+        self.plot_ping.update(self.queue_ping)
 
     def update_ros_topics(self):
         self.update_ping()
@@ -358,19 +372,18 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
 
         # ping
-        self.ping_thread = PingThread(self.conf)
-        self.ping_thread.start()
-        self.ping_queue = deque([], maxlen=50)
+        ## a thread to update data without blocking the GUI
+        self.thread_ping = PingThread(self.conf)
+        self.thread_ping.start()
+        self.queue_ping = deque([], maxlen=50)
+        ## a timer to update the visualisation
+        # -> should we use a signal?
         self.timer_ping = QTimer()
         self.timer_ping.timeout.connect(self.update_ping)
+        self.timer_ping.start(int(1000 * float(self.conf['ping_period'])))
         self.ros_ok = False
         self.robot_ok = False
-
-        self.plot_ping.showGrid(x=True, y=True)
-        self.ping_data_line_bg = self.plot_ping.plot([], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
-        self.ping_data_line = self.plot_ping.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
-
-        self.timer_ping.start(int(1000 * float(self.conf['ping_period'])))
+        self.plot_ping = Plot(self.plot_widget_ping, 0.0, self.conf['ping_plot_max'])
         
         # ros
         if USE_ROS:

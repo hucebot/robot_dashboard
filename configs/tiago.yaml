@@ -1,7 +1,8 @@
-name: Tiago
+name: Virtualfp
 socket_timeout: 0.1
 ping_period: 0.5
 ping_timeout: 0.5
+ping_plot_max: 1 # 1 ms is already a lot for localhost
 ip: localhost
 ros_control_period: 0.1
 ros_period: 0.1
