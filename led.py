@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QRadioButton
+from PyQt5.QtCore import *
 
 GREEN = '#66ff00'
 
@@ -12,6 +12,7 @@ class Led(QRadioButton):
         self.state = 0
         self.setDisabled(True)
 
+    @pyqtSlot(int)
     def set_state(self, state):
         self.state = state
         if self.state == 0:

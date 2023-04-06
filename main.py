@@ -95,11 +95,13 @@ class Plot:
 
 # ping is blocking and we do not want that
 class PingThread(QThread):
+    new_data = pyqtSignal(float)
+    ok = pyqtSignal(int)
+    ping = 0
+
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
-        self.ping = 0
-        self.error = True
     
     def run(self):
         while True:
@@ -110,11 +112,12 @@ class PingThread(QThread):
                     ["fping", "-c1", t, ip], stderr=subprocess.STDOUT)
                 t = c.split(b" ")[5]
                 self.ping = float(t)
-                self.error = False
+                self.ok.emit(1)
             except Exception as e:
                 print(e)
-                self.error = True
-          
+                self.ping = 100
+                self.ok.emit(0)
+            self.new_data.emit(self.ping)
             time.sleep(self.conf['ping_period'])
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
@@ -295,7 +298,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             if m.name == '/Hardware/Battery':
                 self.battery_value = float(m.values[0].value.replace("%", ''))
             elif m.name == "/Hardware/Control PC/Load Average":
-                self.cpu_queue.append(float(m.values[1].value))
+                self.cpu__.append(float(m.values[1].value))
             elif m.name == "/Hardware/Control PC/Emergency Button":
                 if self.robot == 'Tiago':  # Tiago cannot boot with emergency activated
                     self.emergency = False  # => if we are here, the emergency is OK
@@ -369,17 +372,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         ## a thread to update data without blocking the GUI
         self.thread_ping = PingThread(self.conf)
         self.thread_ping.start()
-        self.queue_ping = deque([], maxlen=50)
-        ## a timer to update the visualisation
-        # -> should we use a signal?
-        self.timer_ping = QTimer()
-        self.timer_ping.timeout.connect(self.update_ping)
-        self.timer_ping.start(int(1000 * float(self.conf['ping_period'])))
+        self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
+        self.thread_ping.ok.connect(self.led_robot.set_state)
+
+        # ros
         self.ros_ok = False
         self.robot_ok = False
-        self.plot_ping = Plot(self.plot_widget_ping, 0.0, self.conf['ping_plot_max'])
-        
-        # ros
         if USE_ROS:
             self.timer_ros = QTimer()
             self.timer_ros.timeout.connect(self.update_ros_topics)
