@@ -170,7 +170,7 @@
        </widget>
       </item>
       <item>
-       <widget class="MplWidget" name="plot_ping" native="true">
+       <widget class="PlotWidget" name="plot_widget_ping" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -193,39 +193,59 @@
        </widget>
       </item>
       <item>
-       <widget class="MplWidget" name="plot_cpu" native="true">
+       <widget class="PlotWidget" name="plot_widget_cpu" native="true">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>0</width>
-          <height>10</height>
+          <width>100</width>
+          <height>100</height>
          </size>
         </property>
         <layout class="QGridLayout" name="gridLayout"/>
        </widget>
       </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QLabel" name="label_3">
+       <widget class="QRadioButton" name="radioButton">
         <property name="text">
-         <string>&lt;center&gt;&lt;b&gt;Solver time (ms)&lt;/b&gt;&lt;/center&gt;</string>
+         <string>Gstreamer</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="MplWidget" name="plot_solver" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>UDP Port:</string>
         </property>
-        <layout class="QGridLayout" name="gridLayout_2"/>
        </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>FPS:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer_5">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </item>
@@ -235,9 +255,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MplWidget</class>
+   <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>mplwidget.h</header>
+   <header>pyqtgraph</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
