@@ -1,5 +1,7 @@
 #!/usr/bin/python
+from gstreamer_window import GstreamerWindow
 from PyQt5.QtWidgets import QStyleFactory
+from PyQt5.QtWidgets import QApplication, QDesktopWidget
 import dashboard_ui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -40,9 +42,6 @@ except Exception as e:
     print(e)
     USE_ROS = False
 
-from gstreamer_window import GstreamerWindow
-
-
 
 def dark_style(app):
     # set a dark theme to the app!
@@ -78,15 +77,18 @@ def dark_style(app):
 
 # all the plots follow the same style
 # this could be a custom widget
+
+
 class Plot:
     def __init__(self, widget, min=None, max=None):
         self.widget = widget
         self.widget.showGrid(x=True, y=True)
-        self.line_bg = self.widget.plot([], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
+        self.line_bg = self.widget.plot(
+            [], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
         self.line = self.widget.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
         self.error = False
         if min != None:
-            assert(max != None)
+            assert (max != None)
             self.widget.setYRange(min, max)
 
     def update(self, data):
@@ -94,6 +96,8 @@ class Plot:
         self.line.setData(np.arange(len(data)), data)
 
 # ping is blocking and we do not want that
+
+
 class PingThread(QThread):
     new_data = pyqtSignal(float)
     ok = pyqtSignal(int)
@@ -102,7 +106,7 @@ class PingThread(QThread):
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
-    
+
     def run(self):
         while True:
             try:
@@ -120,19 +124,19 @@ class PingThread(QThread):
             self.new_data.emit(self.ping)
             time.sleep(self.conf['ping_period'])
 
+
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ping(self):
         p = self.thread_ping.ping
         if not self.thread_ping.error:
             self.queue_ping.append(p)
-            self.led_robot.set_state(1) 
+            self.led_robot.set_state(1)
             self.robot_ok = True
         else:
             self.led_robot.set_state(0)
             self.robot_ok = False
             self.queue_ping.append(100)  # put a big value to have it on plot
         self.plot_widget_ping.set_data(self.queue_ping)
-
 
     def update_ros_topics(self):
         self.update_ping()
@@ -358,6 +362,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         print("loaded: ", sys.argv[-1])
         self.robot = self.conf["name"]
 
+        self.button_quit.clicked.connect(QApplication.quit)
+
         self.battery_value = 0
         self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.led_motors = {}
@@ -367,13 +373,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.topic_diag = None
 
         # ping
-        ## a thread to update data without blocking the GUI
+        # a thread to update data without blocking the GUI
         self.thread_ping = PingThread(self.conf)
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
         self.plot_widget_ping.setYRange(0, self.conf['ping_plot_max'])
-        
+
         # ros
         self.ros_ok = False
         self.robot_ok = False
@@ -417,14 +423,22 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
 
 def main():
+
     app = QtWidgets.QApplication(sys.argv)
     dark_style(app)
-    form = Dashboard()
-    form.showMaximized()
+    screen_size = QDesktopWidget().screenGeometry()
 
-    g = GstreamerWindow()
-    g.show()
+    dashboard = Dashboard()
+    dashboard.setGeometry(
+        0, 0, int(screen_size.width()/2), screen_size.height())
+    dashboard.show()
 
+    video = GstreamerWindow()
+    video.setGeometry(int(screen_size.width()/2), 0,
+                      int(screen_size.width()/2),
+                      screen_size.height())
+    video.show()
+    dashboard.raise_()
     app.exec_()
 
 

@@ -31,6 +31,9 @@ class Ui_RobotDashBoard(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
+        self.button_quit = QtWidgets.QPushButton(self.centralwidget)
+        self.button_quit.setObjectName("button_quit")
+        self.verticalLayout.addWidget(self.button_quit)
         self.label_ros_uri = QtWidgets.QLabel(self.centralwidget)
         self.label_ros_uri.setObjectName("label_ros_uri")
         self.verticalLayout.addWidget(self.label_ros_uri)
@@ -130,6 +133,7 @@ class Ui_RobotDashBoard(object):
     def retranslateUi(self, RobotDashBoard):
         _translate = QtCore.QCoreApplication.translate
         RobotDashBoard.setWindowTitle(_translate("RobotDashBoard", "MainWindow"))
+        self.button_quit.setText(_translate("RobotDashBoard", "QUIT"))
         self.label_ros_uri.setText(_translate("RobotDashBoard", "http://localhost:11311"))
         self.led_robot.setText(_translate("RobotDashBoard", "Robot"))
         self.led_emergency.setText(_translate("RobotDashBoard", "Emergency Stop"))

@@ -30,6 +30,13 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
+       <widget class="QPushButton" name="button_quit">
+        <property name="text">
+         <string>QUIT</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label_ros_uri">
         <property name="text">
          <string>http://localhost:11311</string>
