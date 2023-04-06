@@ -170,7 +170,7 @@
        </widget>
       </item>
       <item>
-       <widget class="PlotWidget" name="plot_widget_ping" native="true">
+       <widget class="Plot" name="plot_widget_ping" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -264,6 +264,12 @@
    <class>Led</class>
    <extends>QRadioButton</extends>
    <header>led</header>
+  </customwidget>
+  <customwidget>
+   <class>Plot</class>
+   <extends>QWidget</extends>
+   <header>plot</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

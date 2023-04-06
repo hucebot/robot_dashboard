@@ -77,6 +77,7 @@ def dark_style(app):
     # end of dark theme
 
 # all the plots follow the same style
+# this could be a custom widget
 class Plot:
     def __init__(self, widget, min=None, max=None):
         self.widget = widget
@@ -122,14 +123,14 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if not self.thread_ping.error:
             self.queue_ping.append(p)
             self.led_robot.set_state(1) 
-            self.plot_ping.error = False
+          #  self.plot_ping.error = False
             self.robot_ok = True
         else:
             self.led_robot.set_state(0)
-            self.plot_ping.error  = True
+            #self.plot_ping.error  = True
             self.robot_ok = False
             self.queue_ping.append(100)  # put a big value to have it on plot
-        self.plot_ping.update(self.queue_ping)
+        self.plot_widget_ping.set_data(self.queue_ping)
 
 
     def update_ros_topics(self):

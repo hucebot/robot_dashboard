@@ -81,7 +81,7 @@ class Ui_RobotDashBoard(object):
         self.label.setTextFormat(QtCore.Qt.RichText)
         self.label.setObjectName("label")
         self.layout_plots.addWidget(self.label)
-        self.plot_widget_ping = PlotWidget(self.centralwidget)
+        self.plot_widget_ping = Plot(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -144,4 +144,5 @@ class Ui_RobotDashBoard(object):
         self.label_3.setText(_translate("RobotDashBoard", "UDP Port:"))
         self.label_6.setText(_translate("RobotDashBoard", "FPS:"))
 from led import Led
+from plot import Plot
 from pyqtgraph import PlotWidget
