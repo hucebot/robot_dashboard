@@ -92,7 +92,6 @@ class Plot:
         self.line_bg.setData(np.arange(len(data)), data)
         self.line.setData(np.arange(len(data)), data)
 
-
 # ping is blocking and we do not want that
 class PingThread(QThread):
     def __init__(self, conf):
@@ -122,15 +121,16 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         p = self.thread_ping.ping
         if not self.thread_ping.error:
             self.queue_ping.append(p)
-            self.led_color(self.led_robot, GREEN)
+            self.led_robot.set_state(1) 
             self.plot_ping.error = False
             self.robot_ok = True
         else:
-            self.led_color(self.led_robot, 'red')
+            self.led_robot.set_state(0)
             self.plot_ping.error  = True
             self.robot_ok = False
             self.queue_ping.append(100)  # put a big value to have it on plot
         self.plot_ping.update(self.queue_ping)
+
 
     def update_ros_topics(self):
         self.update_ping()
@@ -363,13 +363,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         socket.setdefaulttimeout(float(self.conf['socket_timeout']))
 
         self.topic_diag = None
-
-        # red leds
-        self.leds = [self.led_robot, self.led_ros, self.led_controller]
-        for l in self.leds:
-            self.led_color(l, "red")
-            l.setDisabled(True)
-
 
         # ping
         ## a thread to update data without blocking the GUI

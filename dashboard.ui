@@ -37,7 +37,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_robot">
+       <widget class="Led" name="led_robot">
         <property name="text">
          <string>Robot</string>
         </property>
@@ -214,7 +214,7 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QRadioButton" name="radioButton">
+       <widget class="QRadioButton" name="led_gstreamer">
         <property name="text">
          <string>Gstreamer</string>
         </property>
@@ -259,6 +259,11 @@
    <extends>QWidget</extends>
    <header>pyqtgraph</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>Led</class>
+   <extends>QRadioButton</extends>
+   <header>led</header>
   </customwidget>
  </customwidgets>
  <resources/>
