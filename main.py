@@ -126,11 +126,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         if not self.thread_ping.error:
             self.queue_ping.append(p)
             self.led_robot.set_state(1) 
-          #  self.plot_ping.error = False
             self.robot_ok = True
         else:
             self.led_robot.set_state(0)
-            #self.plot_ping.error  = True
             self.robot_ok = False
             self.queue_ping.append(100)  # put a big value to have it on plot
         self.plot_widget_ping.set_data(self.queue_ping)
@@ -374,7 +372,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
-
+        self.plot_widget_ping.setYRange(0, self.conf['ping_plot_max'])
+        
         # ros
         self.ros_ok = False
         self.robot_ok = False

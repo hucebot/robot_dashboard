@@ -14,11 +14,7 @@ class Plot(pg.PlotWidget):
         self.line = self.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
         self.error = False
         self.data = deque([], maxlen=50)
-
-        # if min != None:
-        #     assert(max != None)
-        #     self.widget.setYRange(min, max)
-
+        
     @pyqtSlot(float)
     def new_data(self, v):
         self.data.append(v)
