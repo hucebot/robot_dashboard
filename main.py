@@ -432,10 +432,10 @@ def main():
 
     dashboard = Dashboard(conf)
     dashboard.setGeometry(
-        0, 0, int(screen_size.width()/2), screen_size.height())
+        0, 0, int(screen_size.width()/2 * 0.95), screen_size.height())
     dashboard.show()
 
-    video = GstreamerWindow(conf)
+    video = GstreamerWindow(conf, dashboard)
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
@@ -443,7 +443,7 @@ def main():
     dashboard.raise_()
     
     video.thread.ready.connect(dashboard.led_gstreamer.set_state)
-
+    dashboard.label_gstreamer_src.setText(conf['gstreamer_launch'].split('!')[0])
     
     app.exec_()
 

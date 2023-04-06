@@ -44,13 +44,6 @@
        </widget>
       </item>
       <item>
-       <widget class="Led" name="led_robot">
-        <property name="text">
-         <string>Robot</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QRadioButton" name="led_emergency">
         <property name="text">
          <string>Emergency Stop</string>
@@ -167,6 +160,13 @@
     <item>
      <layout class="QVBoxLayout" name="layout_plots">
       <item>
+       <widget class="Led" name="led_robot">
+        <property name="text">
+         <string>Robot</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label">
         <property name="text">
          <string>&lt;center&gt;&lt;b&gt;Ping (ms)&lt;/b&gt;&lt;/center&gt;</string>
@@ -192,30 +192,6 @@
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>&lt;center&gt;&lt;b&gt;Load average&lt;/b&gt;&lt;/center&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="PlotWidget" name="plot_widget_cpu" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>100</width>
-          <height>100</height>
-         </size>
-        </property>
-        <layout class="QGridLayout" name="gridLayout"/>
-       </widget>
-      </item>
      </layout>
     </item>
     <item>
@@ -228,16 +204,19 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_3">
+       <widget class="QLabel" name="label_6">
         <property name="text">
-         <string>Source:</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;FPS&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_6">
-        <property name="text">
-         <string>FPS:</string>
+       <widget class="Plot" name="plot_fps" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
        </widget>
       </item>
@@ -254,6 +233,13 @@
         </property>
        </spacer>
       </item>
+      <item>
+       <widget class="QLabel" name="label_gstreamer_src">
+        <property name="text">
+         <string>Source:</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
    </layout>
@@ -261,12 +247,6 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>PlotWidget</class>
-   <extends>QWidget</extends>
-   <header>pyqtgraph</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>Led</class>
    <extends>QRadioButton</extends>

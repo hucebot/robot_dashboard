@@ -1,12 +1,17 @@
+import gi
+gi.require_version('Gst', '1.0')
 from gi.repository import Gst
 import numpy as np
 
 import gi
-gi.require_version('Gst', '1.0')
 
 # https://stackoverflow.com/questions/49858346/how-te-retrieve-stream-statistics-in-gstreamer
 # https://gist.github.com/hum4n0id/cda96fb07a34300cdb2c0e314c14df0a#send-a-test-video-with-h264-rtp-stream
 # https://stackoverflow.com/questions/39565204/how-to-make-rtpjitterbuffer-work-on-a-stream-without-timestamps
+
+# gst-launch-1.0 filesrc location=/Users/jmouret/Movies/talos/talos_teleop_10min.MP4 \
+#  ! qtdemux \
+# ! decodebin ! videoconvert ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000
 
 # to test:
 # videotestsrc pattern=ball ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000
