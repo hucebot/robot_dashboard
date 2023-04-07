@@ -35,7 +35,8 @@ class GstreamerThread(QThread):
                 if first:
                     self.ready.emit(1)
                     first = False
-
+            self.feed.check_messages()
+            
     def taskStop(self):
         self.__run = False
 

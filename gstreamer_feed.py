@@ -14,34 +14,19 @@ import json
 
 class GStreamerFeed:    
     def __init__(self, launch:str):
-        # everything is delayed for connect
         Gst.init(None)
-        #self.player = Gst.parse_launch('filesrc location=/Users/jmouret/Movies/teleop-short_1min.mp4 name=src ! decodebin !  videoconvert ! video/x-raw, format=RGB !appsink name=sink emit-signals=true')
-        self.pipeline = Gst.parse_launch(launch)
+        self.launch = launch
+        self.init()
+
+    def init(self):
+        self.pipeline = Gst.parse_launch(self.launch)
         self.appsink = self.pipeline.get_by_name('sink')
         self.appsink.connect("new-sample", self.__new_frame, self.appsink)
 
-        self.rtpbin = self.pipeline.get_by_name('rtp')
-        assert(self.rtpbin)
-        
-        self.session = self.rtpbin.emit('get-internal-session',0)
-        
+        self.rtpbin = self.pipeline.get_by_name('rtp')        
+        self.session = self.rtpbin.emit('get-internal-session', 0)
         self.bus = self.pipeline.get_bus()
-        self.bus.add_signal_watch()
-        self.bus.enable_sync_message_emission()
-        self.bus.connect("message", self.__on_message)
-        self.bus.connect("sync-message::element", self.__on_sync_message)
-        self.bus.connect('message::qos', self.__on_qos)
-
-
-      
         self.frame_buffer = None
-
-    def on_new_rtp_packet(rtpbin, sessid, payload_type, packet):
-        ssrc = packet.get_ssrc()
-        internal_session = rtpbin.emit('get-internal-session', ssrc)
-        stats = internal_session.get_property('stats')
-        print(stats)
 
     def getFrame(self):
         ret_frame = self.frame_buffer
@@ -50,14 +35,7 @@ class GStreamerFeed:
 
     def start(self):
         self.pipeline.set_state(Gst.State.PLAYING)
-        str = Gst.debug_bin_to_dot_data(self.pipeline,  Gst.DebugGraphDetails.ALL)
-        f = open('test.dot', 'w')
-        f.write(str)
-
-    def __on_qos(self, bus, msg):
-        print('Qos Message:', msg.parse_qos())
-        
-
+      
     def __to_numpy(self, sample):
         buf = sample.get_buffer()
         caps = sample.get_caps()
@@ -74,9 +52,11 @@ class GStreamerFeed:
         stats = self.session.get_property("stats")
         drops = stats.get_uint("rtx-drop-count")
         source_stats = stats["source-stats"]
-        #bitrate = source_stats[0].get_uint64("bitrate")
-        # no idea why we need the second source here for now...
-        self.bitrate = source_stats[0].get_uint64("bitrate").value
+        if len(source_stats) > 1:
+            self.bitrate = max(source_stats[0].get_uint64("bitrate").value, source_stats[1].get_uint64("bitrate").value)
+        if len(source_stats) == 1:
+            self.bitrate = source_stats[0].get_uint64("bitrate").value
+
 
         # print(source_stats[0])
         #application/x-rtp-source-stats, ssrc=(uint)3654702140, internal=(boolean)false, validated=(boolean)true, received-bye=(boolean)false, is-csrc=(boolean)false, is-sender=(boolean)true, seqnum-base=(int)-1, clock-rate=(int)-1, rtp-from=(string)127.0.0.1:56297, octets-sent=(guint64)0, packets-sent=(guint64)0, octets-received=(guint64)814033, packets-received=(guint64)6487, bytes-received=(guint64)1073513, bitrate=(guint64)580969, packets-lost=(int)-1, jitter=(uint)0, sent-pli-count=(uint)0, recv-pli-count=(uint)0, sent-fir-count=(uint)0, recv-fir-count=(uint)0, sent-nack-count=(uint)0, recv-nack-count=(uint)0, recv-packet-rate=(uint)0, have-sr=(boolean)false, sr-ntptime=(guint64)0, sr-rtptime=(uint)0, sr-octet-count=(uint)0, sr-packet-count=(uint)0, sent-rb=(boolean)true, sent-rb-fractionlost=(uint)0, sent-rb-packetslost=(int)-1, sent-rb-exthighestseq=(uint)6021, sent-rb-jitter=(uint)0, sent-rb-lsr=(uint)0, sent-rb-dlsr=(uint)0, have-rb=(boolean)false, rb-ssrc=(uint)0, rb-fractionlost=(uint)0, rb-packetslost=(int)0, rb-exthighestseq=(uint)0, rb-jitter=(uint)0, rb-lsr=(uint)0, rb-dlsr=(uint)0, rb-round-trip=(uint)0;
@@ -86,25 +66,31 @@ class GStreamerFeed:
         return Gst.FlowReturn.OK
 
     
-    def __on_message(self, bus, message):
+    def check_messages(self):
+        message = self.bus.timed_pop_filtered(10000000, Gst.MessageType.ERROR |Gst.MessageType.STATE_CHANGED| Gst.MessageType.EOS | Gst.MessageType.ELEMENT)
+        #print("state:", self.pipeline.get_state())
+        if message == None:
+            return
         if message.type == Gst.MessageType.EOS:
             self.pipeline.set_state(Gst.State.NULL)
+            print("END OF STREAM")
         elif message.type == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
             print(f"Error: {err} ", debug)
             self.pipeline.set_state(Gst.State.NULL)
-        
-
-    def __on_sync_message(self, bus, message):
-        if message.get_structure().get_name() == 'prepare-window-handle':
-            win_id = self.windowId
-            imagesink = message.src
-            imagesink.set_property("force-aspect-ratio", True)
-            # if not window id then create new window
-            if win_id is None:
-                win_id = self.movie_window.get_property('window').get_xid()
-            imagesink.set_window_handle(win_id)
-
+        elif message.type == Gst.MessageType.STATE_CHANGED:
+            old_state, new_state, pending_state = message.parse_state_changed()
+            #print("State changed from {} to {}".format(old_state, new_state))
+        elif message.type  == Gst.MessageType.ELEMENT:
+            src_element = message.src
+            if isinstance(src_element, Gst.Element) and src_element.get_name() == "src":
+                if message.get_structure().get_name() == "GstUDPSrcTimeout":
+               #     print('timeout')
+                    self.pipeline.set_state(Gst.State.NULL)
+                    self.init()
+                    self.start()
     def isFrameReady(self):
         return not (self.frame_buffer is None)
 
+    def interrupted(self):
+        return False

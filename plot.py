@@ -13,8 +13,10 @@ class Plot(pg.PlotWidget):
         self.line_bg = self.plot([], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
         self.line = self.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
         self.error = False
-        self.data = deque([], maxlen=50)
-        
+        self.data = deque([], maxlen=50) # todo make this 50 configuratble
+        self.disableAutoRange()
+        self.setXRange(0, 50)
+
     @pyqtSlot(float)
     def new_data(self, v):
         self.data.append(v)
@@ -24,3 +26,4 @@ class Plot(pg.PlotWidget):
         self.data = data
         self.line_bg.setData(np.arange(len(data)), data)
         self.line.setData(np.arange(len(data)), data)
+        #self.setYRange(0, np.max(data))

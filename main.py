@@ -384,7 +384,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
-        self.plot_widget_ping.setYRange(0, self.conf['ping_plot_max'])
+        self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
+        self.plot_downstream.setYRange(0, self.conf['plot_downstream_max'])
+        self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
+        self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
+        self.plot_bitrate.setYRange(0, self.conf['plot_bitrate_max'])
+
+        
 
         # network stats
         self.timer_network = QTimer()
