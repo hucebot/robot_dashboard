@@ -366,8 +366,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.setupUi(self)
         self.conf = conf
 
-        self.robot = self.conf["name"]
-
+        self.robot = self.conf["robot_name"]
+        self.label_robot_name.setText(f"<b>{self.robot}</b>")
         self.button_quit.clicked.connect(QApplication.quit)
 
         self.battery_value = 0

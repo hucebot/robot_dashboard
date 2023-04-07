@@ -37,6 +37,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="label_robot_name">
+        <property name="text">
+         <string>Robot-name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label_ros_uri">
         <property name="text">
          <string>http://localhost:11311</string>
