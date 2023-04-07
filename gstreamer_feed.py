@@ -74,10 +74,13 @@ class GStreamerFeed:
         stats = self.session.get_property("stats")
         drops = stats.get_uint("rtx-drop-count")
         source_stats = stats["source-stats"]
-        bitrate = source_stats[0].get_uint64("bitrate")
+        #bitrate = source_stats[0].get_uint64("bitrate")
+        # no idea why we need the second source here for now...
+        self.bitrate = source_stats[0].get_uint64("bitrate").value
+
         # print(source_stats[0])
         #application/x-rtp-source-stats, ssrc=(uint)3654702140, internal=(boolean)false, validated=(boolean)true, received-bye=(boolean)false, is-csrc=(boolean)false, is-sender=(boolean)true, seqnum-base=(int)-1, clock-rate=(int)-1, rtp-from=(string)127.0.0.1:56297, octets-sent=(guint64)0, packets-sent=(guint64)0, octets-received=(guint64)814033, packets-received=(guint64)6487, bytes-received=(guint64)1073513, bitrate=(guint64)580969, packets-lost=(int)-1, jitter=(uint)0, sent-pli-count=(uint)0, recv-pli-count=(uint)0, sent-fir-count=(uint)0, recv-fir-count=(uint)0, sent-nack-count=(uint)0, recv-nack-count=(uint)0, recv-packet-rate=(uint)0, have-sr=(boolean)false, sr-ntptime=(guint64)0, sr-rtptime=(uint)0, sr-octet-count=(uint)0, sr-packet-count=(uint)0, sent-rb=(boolean)true, sent-rb-fractionlost=(uint)0, sent-rb-packetslost=(int)-1, sent-rb-exthighestseq=(uint)6021, sent-rb-jitter=(uint)0, sent-rb-lsr=(uint)0, sent-rb-dlsr=(uint)0, have-rb=(boolean)false, rb-ssrc=(uint)0, rb-fractionlost=(uint)0, rb-packetslost=(int)0, rb-exthighestseq=(uint)0, rb-jitter=(uint)0, rb-lsr=(uint)0, rb-dlsr=(uint)0, rb-round-trip=(uint)0;
-        print(bitrate)
+        #print(bitrate, bitrate2)
         frame = sink.emit("pull-sample")
         self.frame_buffer = self.__to_numpy(frame)
         return Gst.FlowReturn.OK

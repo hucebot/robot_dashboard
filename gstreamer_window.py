@@ -23,14 +23,14 @@ class GstreamerThread(QThread):
         self.launch = launch
 
     def run(self):
-        self.cap = GStreamerFeed(self.launch)
-        self.cap.start()
+        self.feed = GStreamerFeed(self.launch)
+        self.feed.start()
         self.__run = True
         first  = True
         self.ready.emit(2)
         while True:
-            if self.cap.isFrameReady() and self.__run:
-                np_img = self.cap.getFrame()
+            if self.feed.isFrameReady() and self.__run:
+                np_img = self.feed.getFrame()
                 self.change_pixmap_signal.emit(np_img)
                 if first:
                     self.ready.emit(1)
@@ -45,7 +45,9 @@ class GstreamerThread(QThread):
 
 
 class GstreamerWindow(QWidget):
+    # to send data to plots
     new_fps_data_signal = pyqtSignal(float)
+    new_bitrate_data_signal = pyqtSignal(float)
 
     def __init__(self, conf, dashboard):
         super().__init__()
@@ -68,18 +70,24 @@ class GstreamerWindow(QWidget):
         self.thread.start()
 
         self.time_list = []
+        self.bitrate_queue = deque([], self.conf['plot_videostream_period'])
         self.new_fps_data_signal.connect(dashboard.plot_fps.new_data)
+        self.new_bitrate_data_signal.connect(dashboard.plot_bitrate.new_data)
+
 
     @pyqtSlot(np.ndarray)
     def update_image(self, cv_img):
         """Updates the image_label with a new opencv image"""
         qt_img = self.convert_cv_qt(cv_img)
         self.time_list.append(time.time())
+        self.bitrate_queue.append(self.thread.feed.bitrate / 1000)
         self.image_label.setPixmap(qt_img)
-        if len(self.time_list) == self.conf['plot_fps_period']:
+        if len(self.time_list) == self.conf['plot_videostream_period']:
             fps = len(self.time_list) / (self.time_list[-1] -  self.time_list[0])
+            bitrate = np.mean(self.bitrate_queue)
             self.time_list = []
             self.new_fps_data_signal.emit(fps)
+            self.new_bitrate_data_signal.emit(bitrate)
     
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
