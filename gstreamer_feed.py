@@ -65,12 +65,12 @@ class GStreamerFeed:
         self.frame_buffer = self.__to_numpy(frame)
         return Gst.FlowReturn.OK
 
-    
+    # return true of no problem
     def check_messages(self):
         message = self.bus.timed_pop_filtered(10000000, Gst.MessageType.ERROR |Gst.MessageType.STATE_CHANGED| Gst.MessageType.EOS | Gst.MessageType.ELEMENT)
         #print("state:", self.pipeline.get_state())
         if message == None:
-            return
+            return True
         if message.type == Gst.MessageType.EOS:
             self.pipeline.set_state(Gst.State.NULL)
             print("END OF STREAM")
@@ -85,10 +85,13 @@ class GStreamerFeed:
             src_element = message.src
             if isinstance(src_element, Gst.Element) and src_element.get_name() == "src":
                 if message.get_structure().get_name() == "GstUDPSrcTimeout":
-               #     print('timeout')
+                  #  print('timeout')
                     self.pipeline.set_state(Gst.State.NULL)
                     self.init()
                     self.start()
+                    return False
+        return True
+    
     def isFrameReady(self):
         return not (self.frame_buffer is None)
 
