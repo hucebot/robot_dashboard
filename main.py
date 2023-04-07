@@ -8,7 +8,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import inspect
+
+import psutil
 
 import sys
 import os
@@ -110,7 +111,7 @@ class PingThread(QThread):
     def run(self):
         while True:
             try:
-                ip = self.conf['ip']
+                ip = self.conf['robot_ip']
                 t = "-t" + str(self.conf['ping_timeout'])
                 c = subprocess.check_output(
                     ["fping", "-c1", t, ip], stderr=subprocess.STDOUT)
@@ -126,17 +127,26 @@ class PingThread(QThread):
 
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
-    def update_ping(self):
-        p = self.thread_ping.ping
-        if not self.thread_ping.error:
-            self.queue_ping.append(p)
-            self.led_robot.set_state(1)
-            self.robot_ok = True
+    new_data_net_sent_signal = pyqtSignal(float)
+    new_data_net_recv_signal = pyqtSignal(float)
+   
+    def update_network_stats(self):
+        net_io_counters = psutil.net_io_counters(pernic=True)
+        iname = self.conf['local_interface_name']
+        if iname in net_io_counters:
+            stats = net_io_counters[iname]
+            t = time.time()
+            b = (stats.bytes_sent, stats.bytes_recv, t)
+            if len(self.prev_network_stats) != 0:
+                prev_s, prev_r, prev_t = self.prev_network_stats
+                d = t - prev_t
+                sent = (stats.bytes_sent - prev_s) / d / (1024**2)
+                recv = (stats.bytes_recv - prev_r) / d / (1024**2)
+                self.new_data_net_sent_signal.emit(sent)
+                self.new_data_net_recv_signal.emit(recv)
+            self.prev_network_stats = b
         else:
-            self.led_robot.set_state(0)
-            self.robot_ok = False
-            self.queue_ping.append(100)  # put a big value to have it on plot
-        self.plot_widget_ping.set_data(self.queue_ping)
+            print("Interface not found")
 
     def update_ros_topics(self):
         self.update_ping()
@@ -145,7 +155,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.reinit()
             return
         self.ros_pubs = []
-        os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['ip'] + ':11311'
+        os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
         self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
         prev_ros = self.ros_ok
         if self.ros_master == None:
@@ -375,6 +385,15 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
         self.plot_widget_ping.setYRange(0, self.conf['ping_plot_max'])
+
+        # network stats
+        self.timer_network = QTimer()
+        self.timer_network.timeout.connect(self.update_network_stats)
+        self.timer_network.start(int(self.conf['plot_network_period']))
+        self.prev_network_stats = ()
+        self.new_data_net_recv_signal.connect(self.plot_downstream.new_data)
+        self.new_data_net_sent_signal.connect(self.plot_upstream.new_data)
+        
 
         # ros
         self.ros_ok = False

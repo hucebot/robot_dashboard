@@ -76,7 +76,7 @@ class GstreamerWindow(QWidget):
         qt_img = self.convert_cv_qt(cv_img)
         self.time_list.append(time.time())
         self.image_label.setPixmap(qt_img)
-        if len(self.time_list) == 30:
+        if len(self.time_list) == self.conf['plot_fps_period']:
             fps = len(self.time_list) / (self.time_list[-1] -  self.time_list[0])
             self.time_list = []
             self.new_fps_data_signal.emit(fps)

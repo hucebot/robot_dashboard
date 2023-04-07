@@ -1,9 +1,13 @@
-name: Virtualfp
+name: Virtual
 socket_timeout: 0.1
-ping_period: 0.5
+ping_period: 0.5 # in seconds
 ping_timeout: 0.5
 ping_plot_max: 1 # 1 ms is already a lot for localhost
-ip: localhost
-ros_control_period: 0.1
-ros_period: 0.1
+robot_ip: localhost
+ros_control_period: 500.0 # in ms
+ros_period: 500.0 # in seconds
+robot_gstreamer_launch: ""
 gstreamer_launch: "udpsrc port=5000 ! application/x-rtp, payload=96 ! rtpjitterbuffer ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB !appsink name=sink emit-signals=true"
+local_interface_name: "en0"
+plot_fps_period: 30
+plot_network_period: 1000.0 # in ms
