@@ -468,8 +468,9 @@ def main():
     dashboard.raise_()
     
     video.thread.ready.connect(dashboard.led_gstreamer.set_state)
-    dashboard.label_gstreamer_src.setText(conf['gstreamer_launch'].split('!')[0])
-    
+    dashboard.setWindowTitle(conf['robot_ip'])
+    video.setWindowTitle(conf['gstreamer_launch'])
+
     app.exec_()
 
 

@@ -174,13 +174,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QLabel" name="label">
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Ping [ms]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -222,7 +215,7 @@
       <item>
        <widget class="Plot" name="plot_upstream" native="true">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -289,13 +282,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_gstreamer_src">
-        <property name="text">
-         <string>Source:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;FPS&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -326,6 +312,12 @@
       </item>
       <item>
        <widget class="QLabel" name="label_8">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="text">
          <string>&lt;center&gt;&lt;b&gt;Bitrate (Kps)&lt;/b&gt;&lt;/center&gt;</string>
         </property>
@@ -334,7 +326,7 @@
       <item>
        <widget class="Plot" name="plot_bitrate" native="true">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -342,6 +334,12 @@
         <property name="minimumSize">
          <size>
           <width>0</width>
+          <height>200</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
           <height>200</height>
          </size>
         </property>
