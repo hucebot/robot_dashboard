@@ -47,6 +47,7 @@ class GstreamerWindow(QWidget):
     # to send data to plots
     new_fps_data_signal = pyqtSignal(float)
     new_bitrate_data_signal = pyqtSignal(float)
+    new_jitter_data_signal =  pyqtSignal(float)
 
     def __init__(self, conf, dashboard):
         super().__init__()
@@ -68,10 +69,15 @@ class GstreamerWindow(QWidget):
         self.thread.change_pixmap_signal.connect(self.update_image)
         self.thread.start()
 
-        self.time_list = []
-        self.bitrate_queue = deque([], self.conf['plot_videostream_period'])
+        self.time_list = []        
         self.new_fps_data_signal.connect(dashboard.plot_fps.new_data)
+
+        self.bitrate_queue = deque([], self.conf['plot_videostream_period'])
         self.new_bitrate_data_signal.connect(dashboard.plot_bitrate.new_data)
+
+        self.jitter_queue = deque([], self.conf['plot_videostream_period'])
+        self.new_jitter_data_signal.connect(dashboard.plot_jitter.new_data)
+        
 
 
     @pyqtSlot(np.ndarray)
@@ -80,14 +86,18 @@ class GstreamerWindow(QWidget):
         qt_img = self.convert_cv_qt(cv_img)
         self.time_list.append(time.time())
         self.bitrate_queue.append(self.thread.feed.bitrate / 1000)
+        # jitter is in ns -> we convert to ms
+        self.jitter_queue.append(self.thread.feed.jitter / 1e6)
         self.image_label.setPixmap(qt_img)
         if len(self.time_list) == self.conf['plot_videostream_period']:
             fps = len(self.time_list) / (self.time_list[-1] -  self.time_list[0])
             bitrate = np.mean(self.bitrate_queue)
+            jitter = np.mean(self.jitter_queue)
             self.time_list = []
             self.new_fps_data_signal.emit(fps)
             self.new_bitrate_data_signal.emit(bitrate)
-    
+            self.new_jitter_data_signal.emit(jitter)
+
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
         rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)

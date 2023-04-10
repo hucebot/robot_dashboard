@@ -389,6 +389,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
         self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
         self.plot_bitrate.setYRange(0, self.conf['plot_bitrate_max'])
+        self.plot_jitter.setYRange(0, self.conf['plot_jitter_max'])
 
         
 
@@ -468,7 +469,7 @@ def main():
     dashboard.raise_()
     
     video.thread.ready.connect(dashboard.led_gstreamer.set_state)
-    dashboard.setWindowTitle(conf['robot_ip'])
+    dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
     video.setWindowTitle(conf['gstreamer_launch'])
 
     app.exec_()

@@ -6,8 +6,9 @@ robot_ip: localhost
 ros_control_period: 500.0 # in ms
 ros_period: 500.0 # in seconds
 robot_gstreamer_launch: ""
-gstreamer_launch: "udpsrc port=5000  timeout=75000000 name=src  ! queue ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtpbin name=rtp ! rtpjitterbuffer ! rtph264depay ! avdec_h264 ! videoconvert  ! video/x-raw, format=RGB ! appsink name=sink emit-signals=true"
+gstreamer_launch: "udpsrc port=5000  timeout=750000000 name=src  ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264 ! rtpbin name=rtp ! rtpjitterbuffer name=jitter_buffer ! rtph264depay ! avdec_h264 ! videoconvert  ! video/x-raw, format=RGB ! appsink name=sink emit-signals=true"
 local_interface_name: "en0"
+# plot configurations
 plot_videostream_period: 10
 plot_network_period: 250.0 # in ms
 plot_ping_max: 1 # 1 ms is already a lot for localhost
@@ -15,3 +16,4 @@ plot_fps_max: 60
 plot_downstream_max: 10
 plot_upstream_max: 2
 plot_bitrate_max: 2000
+plot_jitter_max: 50
