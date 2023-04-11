@@ -55,9 +55,9 @@ class GStreamerFeed:
 
 
         self.session = self.rtpbin.emit('get-internal-session', 0)
-        def test(buffer):
-            print('receiving rtcp')
-        self.session.connect("on-receiving-rtcp", test)
+        # def test(buffer):
+        #     print('receiving rtcp')
+        # self.session.connect("on-receiving-rtcp", test)
         self.bus = self.pipeline.get_bus()
         self.frame_buffer = None
         self.jitter = 0.0
