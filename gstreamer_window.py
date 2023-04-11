@@ -85,7 +85,7 @@ class GstreamerWindow(QWidget):
         """Updates the image_label with a new opencv image"""
         qt_img = self.convert_cv_qt(cv_img)
         self.time_list.append(time.time())
-        self.bitrate_queue.append(self.thread.feed.bitrate / 1000)
+        self.bitrate_queue.append(self.thread.feed.bitrate / 1000000)
         # jitter is in ns -> we convert to ms
         self.jitter_queue.append(self.thread.feed.jitter / 1e6)
         self.image_label.setPixmap(qt_img)

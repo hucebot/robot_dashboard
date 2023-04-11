@@ -99,7 +99,7 @@ class GStreamerFeed:
             is_sender = source_stats[i].get_boolean("is-sender").value
             if is_sender:
                 print(source_stats[i])
-                self.jitter = source_stats[i].get_uint64("jitter").value
+                self.jitter = source_stats[i].get_uint64("rb-jitter").value
                 self.bitrate = source_stats[i].get_uint64("bitrate").value
                 ntp_time = source_stats[i].get_uint64("sr-ntptime").value
                 rtp_time = source_stats[i].get_uint("sr-rtptime").value

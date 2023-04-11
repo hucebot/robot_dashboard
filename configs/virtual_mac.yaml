@@ -20,9 +20,9 @@ plot_ping_max: 1 # 1 ms is already a lot for localhost
 plot_fps_max: 60
 plot_downstream_max: 10
 plot_upstream_max: 2
-plot_bitrate_max: 2000
+plot_bitrate_max: 2
 plot_jitter_max: 50
-
+plot_delay_max: 1
 # https://community.nxp.com/t5/i-MX-Processors/How-to-get-the-NTP-timestamp-delays-for-the-same-frame-Trx-Ttx/m-p/850493
 
 #Tx (iMX6): 
