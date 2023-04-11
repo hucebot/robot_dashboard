@@ -104,9 +104,8 @@ class GStreamerFeed:
                 ntp_time = source_stats[i].get_uint64("sr-ntptime").value
                 rtp_time = source_stats[i].get_uint("sr-rtptime").value
                 is_sender = source_stats[i].get_boolean("is-sender").value
-                have_sr = source_stats[i].get_boolean("sent-rb").value
-                print('have sr', have_sr)
-                print("is sender:",is_sender)
+                is_sender = source_stats[i].get_boolean("have-rb").value
+                    
                 ntp_seconds = ntp_time >> 32
                 ntp_fraction = ntp_time & 0xffffffff
                 print(ntp_seconds)
