@@ -1,10 +1,11 @@
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst,GstRtp
+from gi.repository import Gst,GstRtp,GstRtsp
 import numpy as np
 import json
 import datetime
 import struct
+import time
 
 # https://stackoverflow.com/questions/49858346/how-te-retrieve-stream-statistics-in-gstreamer
 # https://gist.github.com/hum4n0id/cda96fb07a34300cdb2c0e314c14df0a#send-a-test-video-with-h264-rtp-stream
@@ -37,31 +38,69 @@ class GStreamerFeed:
             name = element.get_name()
             print("\t [{}]".format(name))
 
-#        self.jitter_buffer = self.pipeline.get_by_name('jitter_buffer')
- #       assert(self.jitter_buffer)
-
-  #      self.depay = self.pipeline.get_by_name('depay')
-   #     assert(self.depay)
-    #    sink_pad = self.depay.get_static_pad("sink")
-        # def pad_probe(pad, info):
-        #     print('probe')
-        #     buffer = info.get_buffer()
-        #     (result, mapinfo) = buffer.map(Gst.MapFlags.READ)
-        #     print(info.rtptimestamp())
-            
-        #     # Process the RTP packet here
-        #     return Gst.PadProbeReturn.OK
-        # sink_pad.add_probe(Gst.PadProbeType.BUFFER, pad_probe)
-
-
         self.session = self.rtpbin.emit('get-internal-session', 0)
-        # def test(buffer):
-        #     print('receiving rtcp')
-        # self.session.connect("on-receiving-rtcp", test)
+     
+        self.session.connect("on-receiving-rtcp", self.__on_rtcp)
+        self.session.connect("on-ssrc-active", self.__on_ssrc)
         self.bus = self.pipeline.get_bus()
         self.frame_buffer = None
         self.jitter = 0.0
         self.bitrate = 0.0
+        self.received_rtcp = False
+
+    def __on_ssrc(self, src, udata):
+        print("ssrc active")
+        self.__compute_network_delay(0)
+
+
+    def __on_rtcp(self, rtpsession, buffer):
+        print('reiceved rtcp')
+        self.received_rtcp = True
+        print("RTCP:", buffer.pts, buffer.dts)
+        self.rtcp_pts = buffer.pts
+    
+    def __compute_network_delay(self, packet_pts):
+        if not self.received_rtcp:
+            return
+        rtp_stats = self.session.get_property("stats")
+        assert(rtp_stats)
+        source_stats = rtp_stats["source-stats"]
+        assert(source_stats)
+        for i in range(0, len(source_stats)):
+            is_sender = source_stats[i].get_boolean("is-sender").value
+            if is_sender:
+                print(source_stats[i])
+                self.jitter = source_stats[i].get_uint64("rb-jitter").value
+                self.bitrate = source_stats[i].get_uint64("bitrate").value
+                ntp_time = source_stats[i].get_uint64("sr-ntptime").value
+                rtp_time = source_stats[i].get_uint("sr-rtptime").value
+                sr = source_stats[i].get_boolean("have-sr").value
+                dsr = source_stats[i].get_uint("sent-rb-dlsr").value
+                dsr_seconds =  (dsr >> 16)
+                dsr_fractions = dsr & 0xFFFF
+                microseconds  = (dsr_fractions * 1000000) // 0x100000000
+
+                print("SR:", sr)
+                ntp_seconds = ntp_time >> 32
+                ntp_fraction = ntp_time & 0xffffffff
+                #print(ntp_seconds)
+                unix_time = ntp_seconds - 2208988800 # int((ntp_time - ntp_epoch.timestamp()) // 1)
+                microseconds = (ntp_fraction * 1000000) // 0x100000000
+                remote_time = unix_time * 1e6 + microseconds
+
+                # packet diff, in nano seconds
+                diff = (packet_pts - self.rtcp_pts)
+                print(packet_pts, self.rtcp_pts, " diff:", diff)
+                # too big? not the same pts?
+                local_time = time.time_ns() // 1000
+                delay = local_time - remote_time# in us
+               
+                print(unix_time * 1e6 + microseconds, "vs", local_time)
+                print("->", delay / 1000.0, " ms")
+                date_time = datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
+                print("local:",  datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S.%f'))
+                print("remote:", date_time, microseconds)
+        self.received_rtcp = False
 
     def getFrame(self):
         ret_frame = self.frame_buffer
@@ -89,33 +128,33 @@ class GStreamerFeed:
         frame = sink.emit("pull-sample")
         dts = frame.get_buffer().dts / Gst.SECOND
         pts = frame.get_buffer().pts / Gst.SECOND
-        print("dts:", dts, " pts:", pts)
-        rtp_stats = self.session.get_property("stats")
-        drops = rtp_stats.get_uint("rtx-drop-count")
-        source_stats = rtp_stats["source-stats"]
-        
+        #print("DTS:",  frame.get_buffer().dts, "pts:",  frame.get_buffer().pts)
+       # print("dts:", dts, " pts:", pts)
+        # rtp_stats = self.session.get_property("stats")
+        # drops = rtp_stats.get_uint("rtx-drop-count")
+        # source_stats = rtp_stats["source-stats"]
 #        print("source stats[0]:", source_stats[0])
-        for i in range(0, len(source_stats)):
-            is_sender = source_stats[i].get_boolean("is-sender").value
-            if is_sender:
-                print(source_stats[i])
-                self.jitter = source_stats[i].get_uint64("rb-jitter").value
-                self.bitrate = source_stats[i].get_uint64("bitrate").value
-                ntp_time = source_stats[i].get_uint64("sr-ntptime").value
-                rtp_time = source_stats[i].get_uint("sr-rtptime").value
-                is_sender = source_stats[i].get_boolean("is-sender").value
-                is_sender = source_stats[i].get_boolean("have-rb").value
-                    
-                ntp_seconds = ntp_time >> 32
-                ntp_fraction = ntp_time & 0xffffffff
-                print(ntp_seconds)
-                unix_time = ntp_seconds - 2208988800 # int((ntp_time - ntp_epoch.timestamp()) // 1)
-                microseconds = (ntp_fraction * 1000000) // 0x100000000
+        # for i in range(0, len(source_stats)):
+        #     is_sender = source_stats[i].get_boolean("is-sender").value
+        #     if is_sender:
+        #         #print(source_stats[i])
+        #         self.jitter = source_stats[i].get_uint64("rb-jitter").value
+        #         self.bitrate = source_stats[i].get_uint64("bitrate").value
+        #         ntp_time = source_stats[i].get_uint64("sr-ntptime").value
+        #         rtp_time = source_stats[i].get_uint("sr-rtptime").value
+        #         is_sender = source_stats[i].get_boolean("is-sender").value
+        #         has_sr = source_stats[i].get_boolean("have-sr").value
+        #         print("has_sr:", has_sr, self.prev )
+        #         ntp_seconds = ntp_time >> 32
+        #         ntp_fraction = ntp_time & 0xffffffff
+        #         #print(ntp_seconds)
+        #         unix_time = ntp_seconds - 2208988800 # int((ntp_time - ntp_epoch.timestamp()) // 1)
+        #         microseconds = (ntp_fraction * 1000000) // 0x100000000
 
-                rtp_time_scaled = rtp_time * 90000.0 / Gst.SECOND
-                # Convert the Unix timestamp to a human-readable date and time
-                date_time = datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
-                print(date_time, microseconds,rtp_time_scaled + dts)
+        #         rtp_time_scaled = rtp_time * 90000.0 / Gst.SECOND
+        #         # Convert the Unix timestamp to a human-readable date and time
+        #         date_time = datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
+                #print(date_time, microseconds,rtp_time_scaled + dts)
 
     #     if len(source_stats) > 1:
     #         self.bitrate = max(source_stats[0].get_uint64("bitrate").value, source_stats[1].get_uint64("bitrate").value)
@@ -172,3 +211,5 @@ class GStreamerFeed:
 
     def interrupted(self):
         return False
+    
+
