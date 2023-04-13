@@ -390,7 +390,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
         self.plot_bitrate.setYRange(0, self.conf['plot_bitrate_max'])
         self.plot_jitter.setYRange(0, self.conf['plot_jitter_max'])
-
+        self.plot_delay.setYRange(0, self.conf['plot_delay_max'])
         
 
         # network stats
