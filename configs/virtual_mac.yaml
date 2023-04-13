@@ -6,19 +6,16 @@ robot_ip: localhost
 ros_control_period: 500.0 # in ms
 ros_period: 500.0 # in seconds
 robot_gstreamer_launch: ""
-#gstreamer_launch: "udpsrc port=5000  timeout=750000000 name=src caps=application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264 ! rtpbin name=rtp buffer-mode=none ! rtpjitterbuffer name=jitter_buffer mode=none ! identity ! rtph264depay name=depay ! avdec_h264 ! videoconvert  ! video/x-raw, format=RGB ! timeoverlay ! appsink name=sink emit-signals=true"
-#gstreamer_launch: "rtpbin name=rtpbin buffer-mode=none \
-#udpsrc port=5000 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,#encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
-#udpsrc port=5001 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
-#rtpbin. ! rtph264depay name=depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB  ! #clockoverlay valignment=bottom ! appsink name=sink emit-signals=true"
 gstreamer_launch: "rtpbin name=rtpbin buffer-mode=none \
-udpsrc port=5000 address=127.0.0.1 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
-udpsrc port=5001 address=127.0.0.1 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
+udpsrc port=5000 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
+udpsrc port=5001 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
 rtpbin. ! rtph264depay name=depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB  ! clockoverlay valignment=bottom ! appsink name=sink emit-signals=true"
-
-
-
+# gstreamer_launch: "rtpbin name=rtpbin buffer-mode=none \
+# udpsrc port=5000 address=127.0.0.1 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
+# udpsrc port=5001 address=127.0.0.1 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
+# rtpbin. ! rtph264depay name=depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB  ! clockoverlay valignment=bottom ! appsink name=sink emit-signals=true"
 local_interface_name: "en0"
+
 # plot configurations
 plot_videostream_period: 10
 plot_network_period: 250.0 # in ms
@@ -27,15 +24,5 @@ plot_fps_max: 60
 plot_downstream_max: 10
 plot_upstream_max: 2
 plot_bitrate_max: 2
-plot_jitter_max: 50
-plot_delay_max: 1
-# https://community.nxp.com/t5/i-MX-Processors/How-to-get-the-NTP-timestamp-delays-for-the-same-frame-Trx-Ttx/m-p/850493
-
-#Tx (iMX6): 
-
-#     imxv4l2videosrc fps-n=30 ! imxvpuenc_h264 ! h264parse ! rtph264pay ! rtpbin.send_rtp_sink_0     rtpbin.send_rtp_src_0 ! udpsink host=xxx.xx.xx.xx port=2000 ! rtpbin.send_rtcp_src_0 ! udpsink port= 2001 ! udpsrc     port=2003 ! rtpbin.recv_rtcp_sink_0 
-
-#Rx (Ubuntu):
-
- #   udpsrc port=2000 ! $ CAPS(application/x-rtp) ! rtpbin.recv_rtp_sink_0 rtpbin. ! rtph264depay ! h264parse ! avdec_h264 ! autovideosink ! udpsrc port=2001 ! rtpbin.recv_rtcp_src_0 ! rtpbin.send_rtcp_src_0 ! udpsink port=2003 
-
+plot_jitter_max: 5
+plot_delay_max: 100 # ms

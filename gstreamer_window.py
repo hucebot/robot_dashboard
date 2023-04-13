@@ -48,6 +48,7 @@ class GstreamerWindow(QWidget):
     new_fps_data_signal = pyqtSignal(float)
     new_bitrate_data_signal = pyqtSignal(float)
     new_jitter_data_signal =  pyqtSignal(float)
+    new_delay_data_signal =  pyqtSignal(float)
 
     def __init__(self, conf, dashboard):
         super().__init__()
@@ -78,6 +79,7 @@ class GstreamerWindow(QWidget):
         self.jitter_queue = deque([], self.conf['plot_videostream_period'])
         self.new_jitter_data_signal.connect(dashboard.plot_jitter.new_data)
         
+        self.new_delay_data_signal.connect(dashboard.plot_delay.new_data)
 
 
     @pyqtSlot(np.ndarray)
@@ -97,6 +99,7 @@ class GstreamerWindow(QWidget):
             self.new_fps_data_signal.emit(fps)
             self.new_bitrate_data_signal.emit(bitrate)
             self.new_jitter_data_signal.emit(jitter)
+            self.new_delay_data_signal.emit(self.thread.feed.delay)
 
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
