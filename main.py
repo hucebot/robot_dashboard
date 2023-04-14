@@ -366,7 +366,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.setupUi(self)
         self.conf = conf
 
-        # connect stdout
+        # connect stdout & stderr
         sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
         sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
