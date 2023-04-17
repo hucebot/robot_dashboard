@@ -367,8 +367,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.conf = conf
 
         # connect stdout & stderr
-        sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
-        sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
+        if not "--no-stdout-redirect" in sys.argv:
+            sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
+            sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
         self.robot = self.conf["robot_name"]
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
