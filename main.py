@@ -3,12 +3,13 @@ from gstreamer_window import GstreamerWindow
 from PyQt5.QtWidgets import QStyleFactory
 from PyQt5.QtWidgets import QApplication, QDesktopWidget
 import dashboard_ui
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, Qt
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import datetime
 import psutil
 
 import sys
@@ -76,29 +77,28 @@ def dark_style(app):
         "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
     # end of dark theme
 
-# all the plots follow the same style
-# this could be a custom widget
+# The new Stream Object which replaces the default stream associated with sys.stdout
+class WriteStream(QObject):
+    append_text = pyqtSignal(str)
+    set_color = pyqtSignal(QColor)
 
+    def __init__(self,  text_edit, color, prefix):
+        super().__init__()
+        filename = prefix + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+        self.color = color
+        self.log_file = open(filename, "w")
+        self.text_edit = text_edit
+        self.append_text.connect(self.text_edit.insertPlainText)
+        self.set_color.connect(self.text_edit.setTextColor)
 
-class Plot:
-    def __init__(self, widget, min=None, max=None):
-        self.widget = widget
-        self.widget.showGrid(x=True, y=True)
-        self.line_bg = self.widget.plot(
-            [], [], pen=pg.mkPen(color=(102, 255, 0, 128), width=8))
-        self.line = self.widget.plot([], [], pen=pg.mkPen(color=(102, 255, 0)))
-        self.error = False
-        if min != None:
-            assert (max != None)
-            self.widget.setYRange(min, max)
+    def write(self, text):
+        self.log_file.write(text)
+        # we need to use signals/slots to be thread safe
+        self.set_color.emit(self.color)
+        self.append_text.emit(text)
 
-    def update(self, data):
-        self.line_bg.setData(np.arange(len(data)), data)
-        self.line.setData(np.arange(len(data)), data)
 
 # ping is blocking and we do not want that
-
-
 class PingThread(QThread):
     new_data = pyqtSignal(float)
     ok = pyqtSignal(int)
@@ -365,6 +365,10 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         super(self.__class__, self).__init__()
         self.setupUi(self)
         self.conf = conf
+
+        # connect stdout & stderr
+        sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
+        sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
         self.robot = self.conf["robot_name"]
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
