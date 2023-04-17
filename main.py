@@ -475,7 +475,7 @@ def main():
     
     video.thread.ready.connect(dashboard.led_gstreamer.set_state)
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
-    video.setWindowTitle(conf['gstreamer_launch'])
+    video.setWindowTitle("Video from " + conf['robot_ip'])
 
     app.exec_()
 

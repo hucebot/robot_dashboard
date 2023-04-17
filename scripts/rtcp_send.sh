@@ -1,5 +1,6 @@
 # $1 = file
 # $2 = IP
+set -x
 gst-launch-1.0 -v \
 rtpbin name=rtpbin ntp-sync=true \
 filesrc location=$1 ! qtdemux  ! decodebin ! videoconvert  ! x264enc tune=zerolatency bitrate=900 speed-preset=superfast ! h264parse ! rtph264pay ! rtpbin.send_rtp_sink_0 \

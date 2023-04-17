@@ -1,20 +1,19 @@
+# general configuration
 robot_name: Virtual
-socket_timeout: 0.1
-ping_period: 0.25 # in seconds
-ping_timeout: 0.5
 robot_ip: localhost
+local_interface_name: "lo0"
+socket_timeout: 0.1 # for all sockets (ROS, etc.)
+
+# periods to run things
+ping_period: 0.25 # in seconds
+ping_timeout: 0.5 # in seconds
 ros_control_period: 500.0 # in ms
-ros_period: 500.0 # in seconds
-robot_gstreamer_launch: ""
-gstreamer_launch: "rtpbin name=rtpbin buffer-mode=none \
-udpsrc port=5000 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
-udpsrc port=5001 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
-rtpbin. ! rtph264depay name=depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB  ! clockoverlay valignment=bottom ! appsink name=sink emit-signals=true"
-# gstreamer_launch: "rtpbin name=rtpbin buffer-mode=none \
-# udpsrc port=5000 address=127.0.0.1 caps=\"application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264\" ! rtpbin.recv_rtp_sink_0 \
-# udpsrc port=5001 address=127.0.0.1 caps=\"application/x-rtcp\" ! rtpbin.recv_rtcp_sink_0 \
-# rtpbin. ! rtph264depay name=depay ! avdec_h264 ! videoconvert ! video/x-raw, format=RGB  ! clockoverlay valignment=bottom ! appsink name=sink emit-signals=true"
-local_interface_name: "en0"
+ros_period: 500.0 # ?
+
+# gstreamer
+rtp_port: 5000 # streamer robot->station (video)
+rtcp_port: 5001 # streamer robot->station (control)
+gst_clock: true # should we display the clock on the video
 
 # plot configurations
 plot_videostream_period: 10

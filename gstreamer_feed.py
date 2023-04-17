@@ -2,29 +2,59 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst,GstRtp,GstRtsp
 import numpy as np
-import json
 import datetime
-import struct
 import time
+import os
 
 class GStreamerFeed:    
-    def __init__(self, launch:str):
+    def __init__(self, conf):
         Gst.init(None)
-        self.launch = launch
+        self.conf = conf
         self.init()
 
     def init(self):
-        self.pipeline = Gst.parse_launch(self.launch)
+        # our general pipeline is that:
+        # - we receive the data by RTP on rtp_port (UDP)
+        # - we receive the data about the stream by RTCP (UDP) on rtcp_port at low frequency (default is 5 s) to get the network delay
+        # - we take the rtp data, depayload it, decode it from h264, and get the image
+        try:
+            print("GST_PLUGIN_PATH:", os.environ['GST_PLUGIN_PATH'])
+        except:
+            print("GST_PLUGIN_PATH not set")
+        rtp_port = self.conf["rtp_port"]
+        rtcp_port = self.conf["rtcp_port"]
+        clock = "! clockoverlay valignment=bottom " if self.conf["gst_clock"] else ""
+        caps = "application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264"
+        self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc port={rtp_port} caps=\"{caps}\" \
+        ! rtpbin.recv_rtp_sink_0 udpsrc port={rtcp_port} caps=\"application/x-rtcp\"\
+        ! rtpbin.recv_rtcp_sink_0 rtpbin. \
+        ! rtph264depay name=depay \
+        ! avdec_h264 \
+        ! videoconvert \
+        ! video/x-raw, format=RGB \
+        {clock} \
+        ! appsink name=sink emit-signals=true"
+
+        print("Gstreamer pipeline:", self.pipeline_string.replace("!","\n!"))
+
+        try:
+            self.pipeline = Gst.parse_launch(self.pipeline_string)
+        except Exception as e:
+            print("\nERROR launching GSTREAMER. Check the GST_PATH.\n")
+            print("Error received:")
+            print(e)
+            return
         self.appsink = self.pipeline.get_by_name('sink')
         self.appsink.connect("new-sample", self.__new_frame, self.appsink)
 
+            
         self.rtpbin = self.pipeline.get_by_name('rtpbin')
         assert(self.rtpbin)
-        print("Gstreamer pipeline:")
+        print("Gstreamer pipeline elements (not in order):")
         for element in self.pipeline.iterate_elements():
             name = element.get_name()
             print("\t [{}]".format(name))
-        print("Gstreamer rtpbin:")
+        print("Gstreamer rtpbin elements:")
         for element in self.rtpbin.iterate_elements():
             name = element.get_name()
             print("\t [{}]".format(name))
@@ -64,9 +94,9 @@ class GStreamerFeed:
                 if (delay < 0):
                     print("Please fix NTP: negative delays! =>", delay / 1000.0)
                 self.delay = delay / 1000.0
-                print(delay)
-                print(unix_time * 1e6 + microseconds, "vs", local_time)
-                print("->", delay / 1000.0, " ms")
+                #print(delay)
+                #print(unix_time * 1e6 + microseconds, "vs", local_time)
+                #print("->", delay / 1000.0, " ms")
                 # date_time = datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
                 # print("local:",  datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S.%f'))
                 # print("remote:", date_time, microseconds)

@@ -1,0 +1,10 @@
+
+# gstreamer
+remote_ip: 127.0.0.1 # stream to localhost
+rtp_port: 5000 # streamer robot->station (video)
+rtcp_port: 5001 # streamer robot->station (control)
+gst_clock: true # should we display the clock on the video
+rtcp_interval: 0.25 # every 0.25 s, we send the sender report with the NTP time
+# this could be a v4l source or any gstreamer source
+source: "filesrc location=/Users/jmouret/Movies/icub/prescient_icub.mp4"
+
