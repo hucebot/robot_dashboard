@@ -452,7 +452,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 def main():
 
     if not "yaml" in sys.argv[-1]:
-        print('usage: {} robot.yaml'.format(sys.argv[0]))
+        print('usage: {} [--no-stdout-redirect] robot.yaml'.format(sys.argv[0]))
         sys.exit(1)
     conf = yaml.full_load(open(sys.argv[-1]))
     print("loaded: ", sys.argv[-1])
