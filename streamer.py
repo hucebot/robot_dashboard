@@ -5,13 +5,17 @@ import yaml
 import sys
 import signal
 
-
+msg_clock = False
 def on_message(bus: Gst.Bus, message: Gst.Message, loop: GObject.MainLoop):
     mtype = message.type
     """
         Gstreamer Message Types and how to parse
   https://lazka.github.io/pgi-docs/Gst-1.0/flags.html#Gst.MessageType 
     """
+    global msg_clock
+    msg_clock = not msg_clock
+    c = '/' if msg_clock else '\\'
+    print(f"\r[{c}] [streaming]", end='')
     #print('received a message', mtype)
     if mtype == Gst.MessageType.EOS: 
         # Handle End of Stream 

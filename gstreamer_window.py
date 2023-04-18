@@ -31,9 +31,14 @@ class GstreamerThread(QThread):
             if self.feed.isFrameReady() and self.__run:
                 np_img = self.feed.getFrame()
                 self.change_pixmap_signal.emit(np_img)
-                self.ready.emit(1)
             if not self.feed.check_messages():
                 self.ready.emit(2)
+            elif self.feed.playing:
+                self.ready.emit(1)
+            else:
+                self.ready.emit(2)
+
+
 
     def taskStop(self):
         self.__run = False
