@@ -18,12 +18,12 @@ class GstreamerThread(QThread):
     ready = pyqtSignal(int)
     
 
-    def __init__(self, launch:str=''):
+    def __init__(self, conf):
         super().__init__()
-        self.launch = launch
+        self.conf = conf
 
     def run(self):
-        self.feed = GStreamerFeed(self.launch)
+        self.feed = GStreamerFeed(self.conf)
         self.feed.start()
         self.__run = True
         self.ready.emit(2)
@@ -31,9 +31,14 @@ class GstreamerThread(QThread):
             if self.feed.isFrameReady() and self.__run:
                 np_img = self.feed.getFrame()
                 self.change_pixmap_signal.emit(np_img)
-                self.ready.emit(1)
             if not self.feed.check_messages():
                 self.ready.emit(2)
+            elif self.feed.playing:
+                self.ready.emit(1)
+            else:
+                self.ready.emit(2)
+
+
 
     def taskStop(self):
         self.__run = False
@@ -66,7 +71,7 @@ class GstreamerWindow(QWidget):
         vbox.addWidget(self.image_label)
         self.setLayout(vbox)
 
-        self.thread = GstreamerThread(self.conf['gstreamer_launch'])
+        self.thread = GstreamerThread(self.conf)
         self.thread.change_pixmap_signal.connect(self.update_image)
         self.thread.start()
 

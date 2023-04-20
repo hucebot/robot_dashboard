@@ -367,8 +367,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.conf = conf
 
         # connect stdout & stderr
-        sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
-        sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
+        if not "--no-stdout-redirect" in sys.argv:
+            sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
+            sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
         self.robot = self.conf["robot_name"]
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
@@ -451,7 +452,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 def main():
 
     if not "yaml" in sys.argv[-1]:
-        print('usage: {} robot.yaml'.format(sys.argv[0]))
+        print('usage: {} [--no-stdout-redirect] robot.yaml'.format(sys.argv[0]))
         sys.exit(1)
     conf = yaml.full_load(open(sys.argv[-1]))
     print("loaded: ", sys.argv[-1])
@@ -474,7 +475,7 @@ def main():
     
     video.thread.ready.connect(dashboard.led_gstreamer.set_state)
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
-    video.setWindowTitle(conf['gstreamer_launch'])
+    video.setWindowTitle("Video from " + conf['robot_ip'])
 
     app.exec_()
 
