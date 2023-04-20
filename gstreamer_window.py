@@ -63,10 +63,9 @@ class GstreamerWindow(QWidget):
 
         # create the label that holds the image
         self.image_label = QLabel(self)
-        self.image_label.resize(self.width(), self.height())
+        self.image_label.setMinimumSize(1, 1)
+        #self.image_label.resize(self.width(), self.height())
         self.image_label.setText("<center><h1>Waiting for video stream...</h1></center>")
-        self.img_width = self.width()
-        self.img_height = self.height()
         vbox = QVBoxLayout()
         vbox.addWidget(self.image_label)
         self.setLayout(vbox)
@@ -86,6 +85,7 @@ class GstreamerWindow(QWidget):
         
         self.new_delay_data_signal.connect(dashboard.plot_delay.new_data)
 
+        self.window_size = self.size()
 
     @pyqtSlot(np.ndarray)
     def update_image(self, cv_img):
@@ -112,6 +112,10 @@ class GstreamerWindow(QWidget):
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
         convert_to_Qt_format = QtGui.QImage(rgb_image.data, w, h, bytes_per_line, QtGui.QImage.Format_BGR888)
-        p = convert_to_Qt_format.scaled(self.img_width, self.img_height, Qt.KeepAspectRatio)
+        # in portrait we scaled to height, in landscape to width
+        if self.width() > self.height():
+            p = convert_to_Qt_format.scaledToWidth(self.width())
+        else:
+            p = convert_to_Qt_format.scaledToHeight(self.height())
         return QPixmap.fromImage(p)#convert_to_Qt_format)
     
