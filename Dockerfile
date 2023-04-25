@@ -23,12 +23,20 @@ RUN apt -q -qq update && \
   fping \
   git \
   qtcreator \
-  pyqt5-dev-tools
-
+  pyqt5-dev-tools \
+  ntpdate \
+  python3-psutil \
+  python3-pip \
+  gstreamer1.0-plugins-good \ 
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-rtp \
+  gstreamer1.0-plugins-ugly
 
 
 # switch to python3
 RUN apt install python-is-python3
+
+RUN pip3 install pyqtgraph
 
 # init catkin workspace
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && mkdir -p /catkin_ws/src && cd /catkin_ws/ && catkin build
