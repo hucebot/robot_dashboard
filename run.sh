@@ -3,7 +3,7 @@
 
 
 # Settings required for having nvidia GPU acceleration inside the docker
-DOCKER_GPU_ARGS="--env DISPLAY --env QT_X11_NO_MITSHM=1 --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw"
+DOCKER_GPU_ARGS="--env DISPLAY --env QT_X11_NO_MITSHM=1 --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw --volume=`pwd`:/project -w /project"
 
 echo "Running in graphics mode"
 xhost +

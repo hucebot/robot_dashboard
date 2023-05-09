@@ -9,6 +9,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import inspect
+
 import datetime
 import psutil
 
@@ -149,7 +151,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             print("Interface not found")
 
     def update_ros_topics(self):
-        self.update_ping()
         if self.robot_ok == False:
             self.ros_ok = False
             self.reinit()
@@ -353,12 +354,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         # self.plot_cpu.canvas.ax.set_ylim((0, 10))
 
     def update_solver(self):
-        if not self.controller_running:
-            self.plot_solver.error(True)
-        else:
-            self.plot_solver.error(False)
-        if len(self.solver_queue) != 0:
-            self.plot_solver.set_data(self.solver_queue)
+        pass
+        # if not self.controller_running:
+        #     self.plot_solver.error(True)
+        # else:
+        #     self.plot_solver.error(False)
+        # if len(self.solver_queue) != 0:
+        #     self.plot_solver.set_data(self.solver_queue)
         # self.plot_solver.canvas.ax.set_ylim((0, 10))
 
     def __init__(self, conf):

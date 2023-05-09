@@ -10,6 +10,9 @@ ping_timeout: 0.5 # in seconds
 ros_control_period: 500.0 # in ms
 ros_period: 500.0 # ?
 
+# ROS topics
+topics: []
+
 # gstreamer
 rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
