@@ -30,7 +30,10 @@ RUN apt -q -qq update && \
   gstreamer1.0-plugins-good \ 
   gstreamer1.0-plugins-bad \
   gstreamer1.0-plugins-rtp \
-  gstreamer1.0-plugins-ugly
+  gstreamer1.0-plugins-ugly \
+  gstreammer1.0-libav \
+  python3-gst-1.0 \
+  net-tools
 
 
 # switch to python3

@@ -108,14 +108,13 @@ class GstreamerWindow(QWidget):
 
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap"""
-        rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-        h, w, ch = rgb_image.shape
+        h, w, ch = cv_img.shape
         bytes_per_line = ch * w
-        convert_to_Qt_format = QtGui.QImage(rgb_image.data, w, h, bytes_per_line, QtGui.QImage.Format_BGR888)
+        convert_to_Qt_format = QtGui.QImage(cv_img.data, w, h, bytes_per_line, QtGui.QImage.Format_RGB888)
         # in portrait we scaled to height, in landscape to width
         if self.width() > self.height():
             p = convert_to_Qt_format.scaledToWidth(self.width())
         else:
             p = convert_to_Qt_format.scaledToHeight(self.height())
-        return QPixmap.fromImage(p)#convert_to_Qt_format)
+        return QPixmap.fromImage(p)
     

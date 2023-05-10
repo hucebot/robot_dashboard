@@ -148,7 +148,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.new_data_net_recv_signal.emit(recv)
             self.prev_network_stats = b
         else:
-            print("Interface not found")
+            print("update_network_stats::Interface not found")
 
     def update_ros_topics(self):
         if self.robot_ok == False:
@@ -279,8 +279,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         else:
             self.led_color(self.led_battery, GREEN)
 
-        print("#motors:", len(self.motors), self.motors.keys(),
-              '#led motors', len(self.led_motors))
+        #print("#motors:", len(self.motors), self.motors.keys(),
+        #      '#led motors', len(self.led_motors))
         if len(self.led_motors) == 0:
             for k in self.motors.keys():
                 self.led_motors[k] = QtWidgets.QRadioButton(

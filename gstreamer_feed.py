@@ -31,7 +31,7 @@ class GStreamerFeed:
         timeout = int(self.conf["rtp_timeout"] * 1e9) # convert from s to nanoseconds
         clock = "! clockoverlay valignment=bottom " if self.conf["gst_clock"] else ""
         caps = "application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264"
-        self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc port={rtp_port} timeout={timeout} caps=\"{caps}\" name=src \
+        self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc address=127.0.0.1 port={rtp_port} timeout={timeout} caps=\"{caps}\" name=src \
         ! rtpbin.recv_rtp_sink_0 udpsrc port={rtcp_port} caps=\"application/x-rtcp\"\
         ! rtpbin.recv_rtcp_sink_0 rtpbin. \
         ! rtph264depay name=depay \
@@ -46,7 +46,7 @@ class GStreamerFeed:
         try:
             self.pipeline = Gst.parse_launch(self.pipeline_string)
         except Exception as e:
-            self.print("\nERROR launching GSTREAMER. Check the GST_PATH.\n")
+            self.print("\nERROR launching GSTREAMER. Check GST_PLUGIN_PATH.\n")
             self.print("Error received:")
             self.print(e)
             return
@@ -140,7 +140,7 @@ class GStreamerFeed:
         #self.print("state:", self.pipeline.get_state())
         if message == None:
             return True
-        #self.print("message", message.type)
+        self.print("message", message.type)
         if message.type == Gst.MessageType.BUFFERING:
             self.print('buffering')
         if message.type == Gst.MessageType.EOS:

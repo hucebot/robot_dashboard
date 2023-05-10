@@ -1,7 +1,7 @@
 # general configuration
 robot_name: Virtual
 robot_ip: localhost
-local_interface_name: "lo0"
+local_interface_name: "lo"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
 
 # periods to run things
