@@ -20,12 +20,12 @@ def on_message(bus: Gst.Bus, message: Gst.Message, loop: GObject.MainLoop):
     if mtype == Gst.MessageType.EOS: 
         # Handle End of Stream 
         print("End of stream") 
-        loop.quit()
+        return
     elif mtype == Gst.MessageType.ERROR: 
         # Handle Errors 
         err, debug = message.parse_error() 
         print(err, debug) 
-        loop.quit()
+        return
     elif mtype == Gst.MessageType.WARNING: 
         # Handle warnings 
         err, debug = message.parse_warning() 
@@ -54,21 +54,22 @@ def main():
     rtp_port = conf["rtp_port"]
     rtcp_port = conf["rtcp_port"]
     remote_ip = conf["remote_ip"]
-    clock = "! clockoverlay valignment=top " if conf["gst_clock"] else ""
+    clock = "! clockoverlay valignment=top text=\"src:\" font-desc=\"Sans, 12\" " if conf["gst_clock"] else ""
     source = conf["source"]
 
     # TODO check the source
 
     pipeline_string = f"rtpbin name=rtpbin ntp-sync=true {source} \
-        ! qtdemux  \
-        ! decodebin \
-        ! videoconvert \
-        ! x264enc tune=zerolatency bitrate=900 speed-preset=superfast \
+        {clock} \
+        ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,format=I420 ! queue \
+        ! x264enc tune=zerolatency bitrate=1000 speed-preset=superfast \
         ! h264parse \
         ! rtph264pay \
         ! rtpbin.send_rtp_sink_0 rtpbin.send_rtp_src_0 \
         ! udpsink host={remote_ip} port={rtp_port} sync=true async=false rtpbin.send_rtcp_src_0 \
         ! udpsink host={remote_ip} port={rtcp_port} sync=false async=false"
+    
+    print(pipeline_string.replace('\n', '\\'))
     
     print("Gstreamer pipeline:", pipeline_string.replace("!","\n!"))
     pipeline = None
@@ -98,8 +99,7 @@ def main():
         print("Starting streaming...")
         loop.run()
     except: 
-        loop.quit()
-    print("Streamer quit.")
+        print("Streamer quit.")
 
 if __name__ == '__main__':
     main()

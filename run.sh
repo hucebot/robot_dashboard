@@ -42,5 +42,6 @@ $DOCKER_GPU_ARGS \
 $DOCKER_SSH_AUTH_ARGS \
 $DOCKER_NETWORK_ARGS \
 --privileged \
+-v /dev/video0:/dev/video0 \
 -v /var/run/docker.sock:/var/run/docker.sock \
 "$@"

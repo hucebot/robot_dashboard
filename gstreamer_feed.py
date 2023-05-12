@@ -29,7 +29,7 @@ class GStreamerFeed:
         rtp_port = self.conf["rtp_port"]
         rtcp_port = self.conf["rtcp_port"]
         timeout = int(self.conf["rtp_timeout"] * 1e9) # convert from s to nanoseconds
-        clock = "! clockoverlay valignment=bottom " if self.conf["gst_clock"] else ""
+        clock = "! clockoverlay valignment=bottom text=\"local:\" font-desc=\"Sans, 12\"" if self.conf["gst_clock"] else ""
         caps = "application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264"
         self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc address=127.0.0.1 port={rtp_port} timeout={timeout} caps=\"{caps}\" name=src \
         ! rtpbin.recv_rtp_sink_0 udpsrc port={rtcp_port} caps=\"application/x-rtcp\"\

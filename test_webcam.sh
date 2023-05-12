@@ -1,0 +1,1 @@
+gst-launch-1.0 v4l2src ! videoscale ! videorate ! "video/x-raw,width=720,height=576,framerate=60/1" ! queue ! xvimagesink
