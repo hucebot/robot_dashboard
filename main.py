@@ -122,7 +122,7 @@ class PingThread(QThread):
                 self.ok.emit(1)
             except Exception as e:
                 print(e)
-                self.ping = 100
+                self.ping = self.conf['ping_timeout']
                 self.ok.emit(0)
             self.new_data.emit(self.ping)
             time.sleep(self.conf['ping_period'])
@@ -151,20 +151,19 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             print("update_network_stats::Interface not found")
 
     def update_ros_topics(self):
-        if self.robot_ok == False:
-            self.ros_ok = False
+        if self.led_robot.state != 1:
+            self.led_ros.set_state(0)
             self.reinit()
             return
         self.ros_pubs = []
         os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
         self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
-        prev_ros = self.ros_ok
         if self.ros_master == None:
             self.ros_master = rosgraph.Master(
                 '/rostopic', os.environ["ROS_MASTER_URI"])
         try:
             if self.ros_master.is_online():
-                self.ros_ok = True
+                self.led_ros.set_state(1)
                 self.ros_pubs, self.ros_subs = rostopic.get_topic_list(
                     master=self.ros_master)
                 ros_pubs_names = [item[0] for item in self.ros_pubs]
@@ -176,19 +175,19 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
             else:
                 print("master is offline")
-                self.ros_ok = False
+                self.led_ros.set_state(0)
         except Exception as e:
-            self.ros_ok = False
+            self.led_ros.set_state(0)
             print("Ros: exception", e)
 
-        if self.ros_ok:
-            self.led_color(self.led_ros, GREEN)
-        else:  # ros is down! let' s reinit everything
+        if self.led_ros.state != 1:
             print("ROS is down!")
             self.reinit()
 
         # diagnostics
-        if self.ros_ok and self.topic_diag == None:
+        #print("Ros state:", self.led_ros.state, "   topic_diag:", self.topic_diag)
+        if self.led_ros.state == 1 and self.topic_diag == None:
+            print("Recreating the diagnostic subscription")
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber(
                 "/diagnostics_agg", DiagnosticArray, self.diag_cb)
@@ -197,9 +196,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         frame = inspect.stack()[1]
         print("reinit, called from:",
               frame[3] + " line:", frame.frame.f_lineno)
-        self.led_color(self.led_ros, 'red')
-        self.led_color(self.led_controller, 'red')
-        self.led_color(self.led_battery, 'red')
+        self.led_ros.set_state(0)
+        self.led_battery.set_state(0)
+        self.led_controller.set_state(0)
         self.emergency = True
         self.controller_lister = None
         self.ros_master = None
@@ -222,7 +221,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     def update_ros_control(self):
         # always check ROS (again)
         self.update_ros_topics()
-        if self.ros_ok:
+        if self.led_ros.state == 1:
             try:
                 if self.controller_lister == None:
                     rospy.wait_for_service(
@@ -272,7 +271,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_color(self.led_emergency, GREEN)
         # battery
         self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
-        if self.battery_value < 20 or self.ros_ok != True:
+        if self.battery_value < 20 or self.led_ros.state != 1:
             self.led_color(self.led_battery, 'red')
         elif self.battery_value < 60:
             self.led_color(self.led_battery, 'orange')
@@ -306,12 +305,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     # this is the callback used by ROS, not by PyQT
 
     def diag_cb(self, msg):
-        print('diag cb')
+        #print('diag cb')
         for m in msg.status:
             if m.name == '/Hardware/Battery':
                 self.battery_value = float(m.values[0].value.replace("%", ''))
             elif m.name == "/Hardware/Control PC/Load Average":
-                self.cpu__.append(float(m.values[1].value))
+                cpu = float(m.values[1].value)
+                # TODO CPU plot
             elif m.name == "/Hardware/Control PC/Emergency Button":
                 if self.robot == 'Tiago':  # Tiago cannot boot with emergency activated
                     self.emergency = False  # => if we are here, the emergency is OK
@@ -330,13 +330,18 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                         self.motors[n] = 2  # error
                 else:  # Tiago
                     n = m.name.split("/")[-1]
-                    print(n)
                     for i in m.values:
                         if i.key == "Errors Detected":
                             if i.value == "None":
                                 self.motors[n] = 0
                             else:
                                 self.motors[n] = 2
+                        # different keys for dynamixels
+                        if i.key == "Error Description":
+                            if i.value != "":
+                                self.motors[n] = 2
+                            else:
+                                self.motors[n] = 0
 
     # ROS callback for the solver (not GUI callback)
     def solver_cb(self, msg):
@@ -410,8 +415,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         
 
         # ros
-        self.ros_ok = False
-        self.robot_ok = False
         if USE_ROS:
             self.timer_ros = QTimer()
             self.timer_ros.timeout.connect(self.update_ros_topics)

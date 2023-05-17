@@ -31,16 +31,23 @@ class GStreamerFeed:
         timeout = int(self.conf["rtp_timeout"] * 1e9) # convert from s to nanoseconds
         clock = "! clockoverlay valignment=bottom " if self.conf["gst_clock"] else ""
         caps = "application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)H264"
-        self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc address=127.0.0.1 port={rtp_port} timeout={timeout} caps=\"{caps}\" name=src \
-        ! rtpbin.recv_rtp_sink_0 udpsrc port={rtcp_port} caps=\"application/x-rtcp\"\
-        ! rtpbin.recv_rtcp_sink_0 rtpbin. \
-        ! rtph264depay name=depay \
-        ! avdec_h264 \
-        ! videoconvert \
-        ! video/x-raw, format=RGB \
-        {clock} \
-        ! appsink name=sink emit-signals=true"
+        if self.conf['use_rtcp']:
+            self.pipeline_string = f"rtpbin name=rtpbin buffer-mode=none udpsrc address=127.0.0.1 port={rtp_port} timeout={timeout} caps=\"{caps}\" name=src \
+            ! rtpbin.recv_rtp_sink_0 udpsrc port={rtcp_port} caps=\"application/x-rtcp\"\
+            ! rtpbin.recv_rtcp_sink_0 rtpbin. \
+            ! rtph264depay name=depay \
+            ! avdec_h264 \
+            ! videoconvert \
+            ! video/x-raw, format=RGB \
+            {clock} \
+            ! appsink name=sink emit-signals=true"
+        else:
+            self.pipeline_string = f"udpsrc port={rtp_port} name=src timeout={timeout} \
+            ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96 \
+            ! rtph264depay ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=RGB \
+            ! queue ! appsink sync=true max-buffers=1 drop=true name=sink emit-signals=true"
 
+            
         self.print("Gstreamer pipeline:", self.pipeline_string.replace("!","\n!"))
 
         try:
@@ -53,20 +60,21 @@ class GStreamerFeed:
         self.appsink = self.pipeline.get_by_name('sink')
         self.appsink.connect("new-sample", self.__new_frame, self.appsink)
 
-            
-        self.rtpbin = self.pipeline.get_by_name('rtpbin')
-        assert(self.rtpbin)
+        if self.conf['use_rtcp']:
+            self.rtpbin = self.pipeline.get_by_name('rtpbin')
+            assert(self.rtpbin)
         self.print("Gstreamer pipeline elements (not in order):")
         for element in self.pipeline.iterate_elements():
             name = element.get_name()
             self.print("\t [{}]".format(name))
-        self.print("Gstreamer rtpbin elements:")
-        for element in self.rtpbin.iterate_elements():
-            name = element.get_name()
-            self.print("\t [{}]".format(name))
-
-        self.session = self.rtpbin.emit('get-internal-session', 0)
-        self.session.connect("on-ssrc-active", self.__on_ssrc)
+        if self.conf['use_rtcp']:
+            self.print("Gstreamer rtpbin elements:")
+            for element in self.rtpbin.iterate_elements():
+                name = element.get_name()
+                self.print("\t [{}]".format(name))
+            self.session = self.rtpbin.emit('get-internal-session', 0)
+            self.session.connect("on-ssrc-active", self.__on_ssrc)
+        
         self.bus = self.pipeline.get_bus()
         self.frame_buffer = None
         self.jitter = 0.0
@@ -140,7 +148,7 @@ class GStreamerFeed:
         #self.print("state:", self.pipeline.get_state())
         if message == None:
             return True
-        self.print("message", message.type)
+        #self.print("message", message.type)
         if message.type == Gst.MessageType.BUFFERING:
             self.print('buffering')
         if message.type == Gst.MessageType.EOS:

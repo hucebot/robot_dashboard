@@ -13,31 +13,39 @@ RUN apt -q -qq update && \
   ros-${ROS_DISTRO}-rgbd-launch \
   ros-${ROS_DISTRO}-image-transport-plugins \
   ros-${ROS_DISTRO}-image-transport \
-  ros-${ROS_DISTRO}-controller-manager \
+  ros-${ROS_DISTRO}-controller-manager
+
+RUN apt -q -qq update && apt install -y --allow-unauthenticated \
   python3-catkin \
   python3-catkin-pkg \
   python3-catkin-tools \
   python3-pyqt5 \
   python3-matplotlib \
-  python3-pyqt5.qtmultimedia \
+  python3-pyqt5.qtmultimedia
+
+RUN  apt -q -qq update && apt install -y --allow-unauthenticated \
   fping \
   git \
   qtcreator \
   pyqt5-dev-tools \
   ntpdate \
   python3-psutil \
-  python3-pip \
+  python3-pip
+
+RUN  apt -q -qq update && apt install -y --allow-unauthenticated \
   gstreamer1.0-plugins-good \ 
   gstreamer1.0-plugins-bad \
   gstreamer1.0-plugins-rtp \
   gstreamer1.0-plugins-ugly \
-  gstreammer1.0-libav \
+  gstreamer1.0-libav \
   python3-gst-1.0 \
   net-tools
 
 
 # switch to python3
 RUN apt install python-is-python3
+
+RUN pip3 install numpy
 
 RUN pip3 install pyqtgraph
 

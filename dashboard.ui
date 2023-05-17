@@ -51,21 +51,21 @@
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_emergency">
+       <widget class="Led" name="led_emergency">
         <property name="text">
          <string>Emergency Stop</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_ros">
+       <widget class="Led" name="led_ros">
         <property name="text">
          <string>ROS</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_battery">
+       <widget class="Led" name="led_battery">
         <property name="text">
          <string>Battery</string>
         </property>
@@ -79,7 +79,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="led_controller">
+       <widget class="Led" name="led_controller">
         <property name="text">
          <string>Controller Manager</string>
         </property>
