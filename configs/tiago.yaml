@@ -1,0 +1,34 @@
+# general configuration
+robot_name: Tiago
+robot_ip: 192.168.0.162
+local_interface_name: "enx3448eda495e3"
+socket_timeout: 0.1 # for all sockets (ROS, etc.)
+
+# periods to run things
+ping_period: 1.0 # in seconds
+ping_timeout: 100.0 # in mseconds
+max_bad_ping: 4
+ros_control_period: 500.0 # in ms
+ros_period: 500.0 # ?
+
+# ROS topics
+topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
+
+# gstreamer
+rtp_port: 5000 # streamer robot->station (video)
+rtp_timeout: 2.0 # in seconds
+rtcp_port: 5001 # streamer robot->station (control)
+gst_clock: true # should we display the clock on the video
+gst_verbose: true
+use_rtcp: false
+
+# plot configurations
+plot_videostream_period: 10
+plot_network_period: 250.0 # in ms
+plot_ping_max: 200 # 1 ms is already a lot for localhost
+plot_fps_max: 60
+plot_downstream_max: 10
+plot_upstream_max: 2
+plot_bitrate_max: 2
+plot_jitter_max: 5
+plot_delay_max: 100 # ms
