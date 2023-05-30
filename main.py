@@ -109,17 +109,19 @@ class PingThread(QThread):
     bad_ping_counter = 0
     robot_started = False
 
-    def __init__(self, conf):
+    def __init__(self, conf, ip):
         super().__init__()
         self.conf = conf
+        self.ip = ip
+        print("IP:", self.ip, self)
 
     def run(self):
         while True:
             try:
-                ip = self.conf['robot_ip']
+                print("self.ip:", self.ip)
                 t = "-t" + str(self.conf['ping_timeout'])
                 c = subprocess.check_output(
-                    ["fping", "-c1", t, ip], stderr=subprocess.STDOUT)
+                    ["fping", "-c1", t, self.ip], stderr=subprocess.STDOUT)
                 t = c.split(b" ")[5]
                 self.ping = float(t)
                 self.ok.emit(1)
@@ -130,6 +132,7 @@ class PingThread(QThread):
                 self.ping = self.conf['ping_timeout']
                 self.ok.emit(0)
                 self.bad_ping_counter += 1
+            print("emit new data")
             self.new_data.emit(self.ping)
             time.sleep(self.conf['ping_period'])
             print("bad ping counter:", self.bad_ping_counter, "  started:", self.robot_started)
@@ -405,14 +408,20 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         # ping
         # a thread to update data without blocking the GUI
-        self.thread_ping = PingThread(self.conf)
+        self.thread_ping = PingThread(self.conf, self.conf['robot_ip'])
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
         self.thread_ping.need_reset_signal.connect(lambda x: sys.exit(2))
+        # the gstreamer ping thread
+        self.thread_ping_gstreamer = PingThread(self.conf, self.conf['gstreamer_ip'])
+        self.thread_ping_gstreamer.start()
+        self.thread_ping_gstreamer.new_data.connect(self.plot_ping_gstreamer.new_data)
 
         # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
+        self.plot_ping_gstreamer.setYRange(0, self.conf['plot_ping_max'])
+
         self.plot_downstream.setYRange(0, self.conf['plot_downstream_max'])
         self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
         self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
