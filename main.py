@@ -103,8 +103,11 @@ class WriteStream(QObject):
 # ping is blocking and we do not want that
 class PingThread(QThread):
     new_data = pyqtSignal(float)
+    need_reset_signal = pyqtSignal(int)
     ok = pyqtSignal(int)
     ping = 0
+    bad_ping_counter = 0
+    robot_started = False
 
     def __init__(self, conf):
         super().__init__()
@@ -120,18 +123,27 @@ class PingThread(QThread):
                 t = c.split(b" ")[5]
                 self.ping = float(t)
                 self.ok.emit(1)
+                self.robot_started = True # we started once
+                self.bad_ping_counter = 0
             except Exception as e:
                 print(e)
                 self.ping = self.conf['ping_timeout']
                 self.ok.emit(0)
+                self.bad_ping_counter += 1
             self.new_data.emit(self.ping)
             time.sleep(self.conf['ping_period'])
-
+            print("bad ping counter:", self.bad_ping_counter, "  started:", self.robot_started)
+            if self.robot_started and self.bad_ping_counter >= self.conf['max_bad_ping']:
+                print("need restart")
+                self.need_reset_signal.emit(2) # exit with 2
+            if self.bad_ping_counter != 0:
+                self.ok.emit(2)
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     new_data_net_sent_signal = pyqtSignal(float)
     new_data_net_recv_signal = pyqtSignal(float)
-   
+
+    # TODO move to a thread
     def update_network_stats(self):
         net_io_counters = psutil.net_io_counters(pernic=True)
         iname = self.conf['local_interface_name']
@@ -151,10 +163,10 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             print("update_network_stats::Interface not found")
 
     def update_ros_topics(self):
-        if self.led_robot.state != 1:
-            self.led_ros.set_state(0)
-            self.reinit()
-            return
+        #if self.led_robot.state != 1:
+        #    self.led_ros.set_state(0)
+            #self.reinit()
+        #    return
         self.ros_pubs = []
         os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
         self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
@@ -180,9 +192,10 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_ros.set_state(0)
             print("Ros: exception", e)
 
-        if self.led_ros.state != 1:
-            print("ROS is down!")
-            self.reinit()
+        if self.led_robot == 1 and self.led_ros.state != 1:
+            print("ROS is down, but robot is up, restarting")
+            sys.exit(2) # we cannot recover from this!
+            #self.reinit()
 
         # diagnostics
         #print("Ros state:", self.led_ros.state, "   topic_diag:", self.topic_diag)
@@ -396,6 +409,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
+        self.thread_ping.need_reset_signal.connect(lambda x: sys.exit(2))
+
+        # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
         self.plot_downstream.setYRange(0, self.conf['plot_downstream_max'])
         self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
@@ -469,12 +485,14 @@ def main():
     dashboard = Dashboard(conf)
     dashboard.setGeometry(
         0, 0, int(screen_size.width()/2 * 0.95), screen_size.height())
+   # dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
     video = GstreamerWindow(conf, dashboard)
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
+   # video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     video.show()
     dashboard.raise_()
     
