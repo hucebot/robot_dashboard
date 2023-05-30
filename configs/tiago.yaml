@@ -15,6 +15,7 @@ ros_period: 500.0 # ?
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 
 # gstreamer
+gstreamer_ip: 192.168.0.11
 rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
 rtcp_port: 5001 # streamer robot->station (control)

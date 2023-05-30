@@ -285,6 +285,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="label_ping_gstreamer">
+        <property name="text">
+         <string>&lt;center&gt;&lt;b&gt;Ping[ms]&lt;/b&gt;&lt;/center&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Plot" name="plot_ping_gstreamer" native="true"/>
+      </item>
+      <item>
        <widget class="QLabel" name="label_fps">
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;FPS&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
