@@ -42,5 +42,6 @@ $DOCKER_GPU_ARGS \
 $DOCKER_SSH_AUTH_ARGS \
 $DOCKER_NETWORK_ARGS \
 --privileged \
+--ipc="host" -v/dev/shm:/dev/shm \
 -v /var/run/docker.sock:/var/run/docker.sock \
 "$@"

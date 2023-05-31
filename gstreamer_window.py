@@ -75,15 +75,15 @@ class GstreamerWindow(QWidget):
         self.thread.start()
 
         self.time_list = []        
-        self.new_fps_data_signal.connect(dashboard.plot_fps.new_data)
+        self.new_fps_data_signal.connect(dashboard.plots['fps'].new_data)
 
         self.bitrate_queue = deque([], self.conf['plot_videostream_period'])
-        self.new_bitrate_data_signal.connect(dashboard.plot_bitrate.new_data)
+        #self.new_bitrate_data_signal.connect(dashboard.plot_bitrate.new_data)
 
         self.jitter_queue = deque([], self.conf['plot_videostream_period'])
-        self.new_jitter_data_signal.connect(dashboard.plot_jitter.new_data)
+        #self.new_jitter_data_signal.connect(dashboard.plot_jitter.new_data)
         
-        self.new_delay_data_signal.connect(dashboard.plot_delay.new_data)
+        #self.new_delay_data_signal.connect(dashboard.plot_delay.new_data)
 
         self.window_size = self.size()
 

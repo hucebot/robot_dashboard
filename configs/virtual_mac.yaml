@@ -9,6 +9,7 @@ ping_period: 0.25 # in seconds
 ping_timeout: 0.5 # in seconds
 ros_control_period: 500.0 # in ms
 ros_period: 500.0 # ?
+max_bad_ping: 4
 
 # ROS topics
 topics: []
@@ -19,6 +20,8 @@ rtp_timeout: 2.0 # in seconds
 rtcp_port: 5001 # streamer robot->station (control)
 gst_clock: true # should we display the clock on the video
 gst_verbose: true
+gstreamer_ip: "localhost"
+use_rtcp: false
 
 # plot configurations
 plot_videostream_period: 10

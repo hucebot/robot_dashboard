@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
+import dark_style
 import inspect
 
 import datetime
@@ -23,6 +23,8 @@ import socket
 import numpy as np
 import yaml
 import pyqtgraph as pg
+import gstreamer_plots
+import ping
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -47,37 +49,6 @@ except Exception as e:
     USE_ROS = False
 
 
-def dark_style(app):
-    # set a dark theme to the app!
-    app.setStyle('fusion')
-    dark_palette = QPalette()
-
-    dark_palette.setColor(QPalette.Window, QColor(0, 0, 0))
-    dark_palette.setColor(QPalette.WindowText, Qt.white)
-    dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
-    dark_palette.setColor(QPalette.ToolTipText, Qt.white)
-    dark_palette.setColor(QPalette.Text, Qt.white)
-    dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.Button, QColor(30, 30, 30))
-    dark_palette.setColor(QPalette.ButtonText, Qt.white)
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
-    dark_palette.setColor(QPalette.BrightText, Qt.red)
-    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.Highlight, QColor(100, 100, 100))
-
-    dark_palette.setColor(QPalette.HighlightedText, Qt.black)
-
-    app.setPalette(dark_palette)
-
-    app.setStyleSheet(
-        "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
-    # end of dark theme
 
 # The new Stream Object which replaces the default stream associated with sys.stdout
 class WriteStream(QObject):
@@ -100,47 +71,7 @@ class WriteStream(QObject):
         self.append_text.emit(text)
 
 
-# ping is blocking and we do not want that
-class PingThread(QThread):
-    new_data = pyqtSignal(float)
-    need_reset_signal = pyqtSignal(int)
-    ok = pyqtSignal(int)
-    ping = 0
-    bad_ping_counter = 0
-    robot_started = False
 
-    def __init__(self, conf, ip):
-        super().__init__()
-        self.conf = conf
-        self.ip = ip
-        print("IP:", self.ip, self)
-
-    def run(self):
-        while True:
-            try:
-                print("self.ip:", self.ip)
-                t = "-t" + str(self.conf['ping_timeout'])
-                c = subprocess.check_output(
-                    ["fping", "-c1", t, self.ip], stderr=subprocess.STDOUT)
-                t = c.split(b" ")[5]
-                self.ping = float(t)
-                self.ok.emit(1)
-                self.robot_started = True # we started once
-                self.bad_ping_counter = 0
-            except Exception as e:
-                print(e)
-                self.ping = self.conf['ping_timeout']
-                self.ok.emit(0)
-                self.bad_ping_counter += 1
-            print("emit new data")
-            self.new_data.emit(self.ping)
-            time.sleep(self.conf['ping_period'])
-            print("bad ping counter:", self.bad_ping_counter, "  started:", self.robot_started)
-            if self.robot_started and self.bad_ping_counter >= self.conf['max_bad_ping']:
-                print("need restart")
-                self.need_reset_signal.emit(2) # exit with 2
-            if self.bad_ping_counter != 0:
-                self.ok.emit(2)
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     new_data_net_sent_signal = pyqtSignal(float)
@@ -408,16 +339,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         # ping
         # a thread to update data without blocking the GUI
-        self.thread_ping = PingThread(self.conf, self.conf['robot_ip'])
+        self.thread_ping = ping.PingThread(self.conf, self.conf['robot_ip'])
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
         self.thread_ping.need_reset_signal.connect(lambda x: sys.exit(2))
-        # the gstreamer ping thread
-        self.thread_ping_gstreamer = PingThread(self.conf, self.conf['gstreamer_ip'])
-        self.thread_ping_gstreamer.start()
-        self.thread_ping_gstreamer.new_data.connect(self.plot_ping_gstreamer.new_data)
-
+       
         # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
         self.plot_ping_gstreamer.setYRange(0, self.conf['plot_ping_max'])
@@ -488,16 +415,21 @@ def main():
     print("loaded: ", sys.argv[-1])
 
     app = QtWidgets.QApplication(sys.argv)
-    dark_style(app)
+    dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
     dashboard = Dashboard(conf)
     dashboard.setGeometry(
-        0, 0, int(screen_size.width()/2 * 0.95), screen_size.height())
+        0, 0, int(screen_size.width()/4), screen_size.height())
    # dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
-    video = GstreamerWindow(conf, dashboard)
+    plots = gstreamer_plots.GstreamerPlots(conf)
+    plots.setGeometry(0, 0,  int(screen_size.width()/4),
+                      screen_size.height())
+    plots.show()
+
+    video = GstreamerWindow(conf, plots)
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
