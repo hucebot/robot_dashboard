@@ -3,6 +3,8 @@ robot_name: Virtual
 robot_ip: localhost
 local_interface_name: "lo"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
+window_border: true
+
 
 # periods to run things
 ping_period: 0.25 # in seconds

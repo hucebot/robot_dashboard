@@ -260,26 +260,6 @@
       <item>
        <widget class="QTextEdit" name="text_stdout"/>
       </item>
-      <item>
-       <spacer name="verticalSpacer_5">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="Plot" name="plot_delay" native="true"/>
-      </item>
      </layout>
     </item>
    </layout>

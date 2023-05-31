@@ -56,7 +56,6 @@ RUN rosdep update
 
 
  RUN touch /root/.bashrc \   
-    && echo "source /catkin_ws/devel/setup.bash" >> /root/.bashrc \
     && echo "export ROS_PYTHON_VERSION=3" >> /root/.bashrc
 
 RUN cd /root && git clone https://github.com/hucebot/robot_dashboard
@@ -82,5 +81,6 @@ RUN rosdep update && cd ~/ros2_humble/ && rosdep install --from-paths src --igno
 
 RUN cd ~/ros2_humble/ && colcon build --symlink-install
 RUN echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 
 CMD ["bash"]

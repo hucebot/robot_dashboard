@@ -47,13 +47,14 @@ class GstreamerRos2Thread(QThread):
 
 class GstreamerPlots(QWidget):
 
-    def __init__(self, conf):
+    def __init__(self, conf, standalone=True):
         super(QWidget, self).__init__()
 
         self.layout = QVBoxLayout()
-        self.button_quit = QPushButton('Quit')
-        self.layout.addWidget(self.button_quit)
-        self.button_quit.clicked.connect(QApplication.quit)
+        if standalone:
+            self.button_quit = QPushButton('Quit')
+            self.layout.addWidget(self.button_quit)
+            self.button_quit.clicked.connect(QApplication.quit)
 
         self.conf = conf
 

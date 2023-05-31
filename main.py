@@ -438,22 +438,27 @@ def main():
     dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
+    dock = 80
     dashboard = Dashboard(conf)
-    dashboard.setGeometry(
-        0, 0, int(screen_size.width()/4), screen_size.height())
-   # dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    dashboard.setGeometry(0, 0, 0, screen_size.height())
+    if conf['window_border'] == False:
+        dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
-    gplots = gstreamer_plots.GstreamerPlots(conf)
-    gplots.setGeometry(int(screen_size.width())/4, 0, int(screen_size.width()/4),
-                      screen_size.height())
+
+    gplots = gstreamer_plots.GstreamerPlots(conf, standalone=False) # 80 is because of the dock...
+    gplots.setGeometry(dashboard.size().width() + dock, 0, 0, screen_size.height())
+    if conf['window_border'] == False:
+        gplots.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+
     gplots.show()
 
     video = GstreamerWindow(conf, gplots)
-    video.setGeometry(int(screen_size.width()/2), 0,
-                      int(screen_size.width()/2),
+    video.setGeometry(dashboard.size().width() + gplots.width() + dock , 0,
+                      screen_size.width() - dashboard.size().width() - gplots.width() - dock,
                       screen_size.height())
-   # video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    if conf['window_border'] == False:
+        video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     video.show()
  
  
