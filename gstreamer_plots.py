@@ -51,17 +51,20 @@ class GstreamerPlots(QWidget):
         super(QWidget, self).__init__()
 
         self.layout = QVBoxLayout()
-        self.layout.addWidget(QPushButton('QUIT'))
+        self.button_quit = QPushButton('Quit')
+        self.layout.addWidget(self.button_quit)
+        self.button_quit.clicked.connect(QApplication.quit)
+
         self.conf = conf
 
-        self.led_ping = Led('Remote host:' + conf['gstreamer_ip'])
+        self.led_ping = Led('Remote host: ' + conf['gstreamer_ip'])
         self.layout.addWidget(self.led_ping)
         self.led_ros2 = Led('Clock topic: /gstreamer_service/local_time')
         self.layout.addWidget(self.led_ros2)
 
 
-        plot_names = ['ping', 'fps', 'bitrate', 'delay']
-        plot_labels = ['Ping [ms]', 'FPS', 'Bitrate [kpbs]', 'Delay [ms]']
+        plot_names = ['ping', 'fps', 'delay']
+        plot_labels = ['Ping [ms]', 'FPS', 'Delay [ms]']
         self.plots = {}
         for p,l in zip(plot_names,plot_labels):
             self.layout.addWidget(QLabel('<center><b>' + l + '</b></center>'))
@@ -84,8 +87,8 @@ class GstreamerPlots(QWidget):
 
         # conf
         self.plots['ping'].setYRange(0, self.conf['plot_ping_max'])
-        self.plots['ping'].setYRange(0, self.conf['plot_ping_max'])
         self.plots['delay'].setYRange(0, self.conf['plot_delay_max'])
+        self.plots['fps'].setYRange(0, self.conf['plot_fps_max'])
 
 def main():
     
@@ -100,7 +103,7 @@ def main():
     screen_size = QDesktopWidget().screenGeometry()
 
     plots = GstreamerPlots(conf)
-    plots.setGeometry(0, 0,  int(screen_size.width()/4),
+    plots.setGeometry(0, 0,  int(screen_size.width()/6),
                       screen_size.height())
     plots.show()
 
@@ -108,8 +111,8 @@ def main():
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
-   # video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-    #video.show()
+    #video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    video.show()
 
     dark_style.dark_style(app)
     app.exec_()

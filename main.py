@@ -50,27 +50,55 @@ except Exception as e:
 
 
 
-# The new Stream Object which replaces the default stream associated with sys.stdout
+# The new Stream Object which replaces the default stream associated with sys.stdout/stderr
 class WriteStream(QObject):
     append_text = pyqtSignal(str)
     set_color = pyqtSignal(QColor)
 
-    def __init__(self,  text_edit, color, prefix):
+    def __init__(self, text_edit, color, name):
         super().__init__()
-        filename = prefix + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+        filename = name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
         self.color = color
         self.log_file = open(filename, "w")
         self.text_edit = text_edit
-        self.append_text.connect(self.text_edit.insertPlainText)
+        # could be moved elsewhere
+        self.text_edit.setReadOnly(True)
+        self.sb = self.text_edit.verticalScrollBar()
+        self.sb.setValue(self.sb.maximum())
+
+        self.append_text.connect(self.append)
         self.set_color.connect(self.text_edit.setTextColor)
+        self.stderr = sys.stderr
+        self.stdout = sys.stdout
+        self.name = name
+        if name == 'stdout':
+            sys.stdout = self
+        if name == 'stderr':
+            sys.stderr = self
+
+    def append(self, msg):
+        self.text_edit.insertPlainText(msg)
+        # automatic scrolling
+        sb = self.text_edit.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def write(self, text):
         self.log_file.write(text)
+        if self.name == 'stdout':
+            self.stdout.write(text)
+        if self.name == 'stderr':
+            self.stderr.write(text)
+
         # we need to use signals/slots to be thread safe
         self.set_color.emit(self.color)
         self.append_text.emit(text)
 
-
+    def flush(self):
+        if self.name == 'stdout':
+            self.stdout.flush()
+        if self.name == 'stderr':
+            self.stderr.flush()
+        self.log_file.flush()
 
 
 class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
@@ -321,9 +349,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.conf = conf
 
         # connect stdout & stderr
-        if not "--no-stdout-redirect" in sys.argv:
-            sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
-            sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
+        self.stdout = WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
+        self.stderr = WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
         self.robot = self.conf["robot_name"]
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
@@ -347,16 +374,9 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
        
         # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
-        self.plot_ping_gstreamer.setYRange(0, self.conf['plot_ping_max'])
-
         self.plot_downstream.setYRange(0, self.conf['plot_downstream_max'])
         self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
-        self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
-        self.plot_bitrate.setYRange(0, self.conf['plot_bitrate_max'])
-        self.plot_jitter.setYRange(0, self.conf['plot_jitter_max'])
-        self.plot_delay.setYRange(0, self.conf['plot_delay_max'])
         
-
         # network stats
         self.timer_network = QTimer()
         self.timer_network.timeout.connect(self.update_network_stats)
@@ -424,23 +444,25 @@ def main():
    # dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
-    plots = gstreamer_plots.GstreamerPlots(conf)
-    plots.setGeometry(0, 0,  int(screen_size.width()/4),
+    gplots = gstreamer_plots.GstreamerPlots(conf)
+    gplots.setGeometry(int(screen_size.width())/4, 0, int(screen_size.width()/4),
                       screen_size.height())
-    plots.show()
+    gplots.show()
 
-    video = GstreamerWindow(conf, plots)
+    video = GstreamerWindow(conf, gplots)
     video.setGeometry(int(screen_size.width()/2), 0,
                       int(screen_size.width()/2),
                       screen_size.height())
    # video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     video.show()
+ 
+ 
+ 
     dashboard.raise_()
     
-    video.thread.ready.connect(dashboard.led_gstreamer.set_state)
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
-    video.setWindowTitle("Video from " + conf['robot_ip'])
-
+    video.setWindowTitle("Video from " + conf['gstreamer_ip'])
+    gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
     app.exec_()
 
 

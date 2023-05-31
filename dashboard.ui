@@ -278,60 +278,6 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="Led" name="led_gstreamer">
-        <property name="text">
-         <string>Gstreamer</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_ping_gstreamer">
-        <property name="text">
-         <string>&lt;center&gt;&lt;b&gt;Ping[ms]&lt;/b&gt;&lt;/center&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Plot" name="plot_ping_gstreamer" native="true"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_fps">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;FPS&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Plot" name="plot_fps" native="true"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_birate">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Bitrate [Mps]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Plot" name="plot_bitrate" native="true"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_jitter">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Jitter [ms]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Plot" name="plot_jitter" native="true"/>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_delay">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Delay (robot → local) [ms]&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="Plot" name="plot_delay" native="true"/>
       </item>
      </layout>
