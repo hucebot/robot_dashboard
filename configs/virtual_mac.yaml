@@ -1,7 +1,7 @@
 # general configuration
 robot_name: Virtual
 robot_ip: localhost
-local_interface_name: "lo"
+local_interface_name: "wlp111s0"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
 window_border: true
 
@@ -20,13 +20,13 @@ topics: []
 gstreamer_topic: "/gstreamer_service"
 rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
-rtcp_port: 5001 # streamer robot->station (control)
+rtcp_port: 5001 # streamer robot->station (control) # deprecated
 gst_clock: true # should we display the clock on the video
-gst_verbose: true
+gst_verbose: false
 gstreamer_ip: "localhost" # deprecated
-rtp_host: "localhost"
-
-use_rtcp: false
+rtp_host: "localhost" # deprecated
+ntp_server: 'time.apple.com'
+use_rtcp: false # deprecated
 
 # plot configurations
 plot_videostream_period: 10
