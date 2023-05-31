@@ -17,12 +17,15 @@ max_bad_ping: 4
 topics: []
 
 # gstreamer
+gstreamer_topic: "/gstreamer_service"
 rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
 rtcp_port: 5001 # streamer robot->station (control)
 gst_clock: true # should we display the clock on the video
 gst_verbose: true
-gstreamer_ip: "localhost"
+gstreamer_ip: "localhost" # deprecated
+rtp_host: "localhost"
+
 use_rtcp: false
 
 # plot configurations

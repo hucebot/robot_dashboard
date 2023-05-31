@@ -14,22 +14,45 @@ import ping
 
 # ROS2import rclpy
 import rclpy
+import rcl_interfaces
 from rclpy.node import Node
 from builtin_interfaces.msg import Time
+from rcl_interfaces.srv import GetParameters
 
 class GstreamerRos2Thread(QThread):
     new_delay_data_signal =  pyqtSignal(float)
     new_bitrate_data_signal = pyqtSignal(float)
     new_packet = pyqtSignal(int)
+    rtp_host = pyqtSignal(str)
 
-    def __init__(self):
+    
+    def __init__(self, conf):
         super().__init__()
         rclpy.init()
+        self.conf = conf
 
         self.node = Node('gstreamer_client')
-        self.sub_clock = self.node.create_subscription(Time, '/gstreamer_service/local_time', self.clock_callback, 10)
+        self.sub_clock = self.node.create_subscription(Time, self.conf['gstreamer_topic'] + '/local_time', self.clock_callback, 10)
         self.network_delay = 0
         self.timer_new_packet = self.node.create_timer(0.5, lambda : self.new_packet.emit(2))
+        self.get_params = self.node.create_client(GetParameters, self.conf['gstreamer_topic'] + '/get_parameters')
+        self.sub_param_change = self.node.create_subscription(rcl_interfaces.msg.ParameterEvent, "/parameter_events", self.param_event_callback, 1)
+
+        self.params_need_update = True
+
+    def update_parameters(self):
+        while not self.get_params.wait_for_service(timeout_sec=1.0):
+            print('parameter service not available, waiting again...')
+        req = GetParameters.Request()
+        req.names = ["rtp_host", "rtp_port"]
+        self.params = self.get_params.call_async(req)
+        self.params_need_update = True
+
+
+    def param_event_callback(self,msg: rcl_interfaces.msg.ParameterEvent):
+        if msg.node == self.conf['gstreamer_topic']:
+            self.update_parameters()
+
 
     def clock_callback(self, msg):
         t = time.time_ns()
@@ -41,14 +64,21 @@ class GstreamerRos2Thread(QThread):
         self.new_packet.emit(1)
 
     def run(self):
-        print('ros2 is spinning...')
+        self.update_parameters()
         while True:
             rclpy.spin_once(self.node)
+
+            if self.params_need_update and self.params.done():
+                self.params_need_update = False
+                self.rtp_host = self.params.result().values[0].string_value
+                self.rtp_port = self.params.result().values[1].integer_value
+                print("RTP:", self.rtp_host, self.rtp_port)
 
 class GstreamerPlots(QWidget):
 
     def __init__(self, conf, standalone=True):
         super(QWidget, self).__init__()
+        self.conf = conf
 
         self.layout = QVBoxLayout()
         if standalone:
@@ -56,13 +86,13 @@ class GstreamerPlots(QWidget):
             self.layout.addWidget(self.button_quit)
             self.button_quit.clicked.connect(QApplication.quit)
 
-        self.conf = conf
-
+        
         self.led_ping = Led('Remote host: ' + conf['gstreamer_ip'])
         self.layout.addWidget(self.led_ping)
         self.led_ros2 = Led('Clock topic: /gstreamer_service/local_time')
         self.layout.addWidget(self.led_ros2)
-
+        self.label_rtp = QLabel(self.conf['rtp_host'] + ':' + str(self.conf['rtp_port']))
+        self.layout.addWidget(self.label_rtp)
 
         plot_names = ['ping', 'fps', 'delay']
         plot_labels = ['Ping [ms]', 'FPS', 'Delay [ms]']
@@ -81,7 +111,7 @@ class GstreamerPlots(QWidget):
         self.thread_ping_gstreamer.ok.connect(self.led_ping.set_state)
 
         # ros2 thread
-        self.thread_ros2 = GstreamerRos2Thread()
+        self.thread_ros2 = GstreamerRos2Thread(self.conf)
         self.thread_ros2.start()
         self.thread_ros2.new_delay_data_signal.connect(self.plots['delay'].new_data)
         self.thread_ros2.new_packet.connect(self.led_ros2.set_state)
