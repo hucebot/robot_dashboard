@@ -22,6 +22,8 @@ from builtin_interfaces.msg import Time
 from rcl_interfaces.srv import *
 from rcl_interfaces.msg import *
 import rclpy.parameter
+
+
 class GstreamerRos2Thread(QThread):
     new_delay_data_signal =  pyqtSignal(float)
     new_bitrate_data_signal = pyqtSignal(float)
@@ -46,23 +48,24 @@ class GstreamerRos2Thread(QThread):
 
         self.ntp_sync()
         
-        self.set_parameters() # set parameters to the ros node
+        self.parameters_set = self.set_parameters() # set parameters to the ros node
 
     def ntp_sync(self):
+        # we use popen so that this is asynchronous
         print('syncing clock (this might take a few secs...)')
         subprocess.Popen(['ntpdate', self.conf['ntp_server']])
 
     def set_parameters(self):
         self.my_ip = netifaces.ifaddresses(self.conf['local_interface_name'])[2][0]['addr']
-        while not self.set_params.wait_for_service(timeout_sec=1.0):
-             print('parameter service not available, waiting...')
+        if not self.set_params.wait_for_service(timeout_sec=1.0):
+             return False
         req = SetParameters.Request()
         rtp_dest = rclpy.parameter.Parameter(name='rtp_dest', value=self.my_ip).to_parameter_msg()
         rtp_port = rclpy.parameter.Parameter(name='rtp_port', value=self.conf['rtp_port']).to_parameter_msg()
         ntp_server = rclpy.parameter.Parameter(name='ntp_server', value=self.conf['ntp_server']).to_parameter_msg()
-
         req.parameters = [rtp_dest, rtp_port, ntp_server]
         _ = self.set_params.call_async(req)
+        return True
 
 
     def update_parameters(self):
@@ -94,6 +97,9 @@ class GstreamerRos2Thread(QThread):
 
         while True:
             rclpy.spin_once(self.node)
+            time.sleep(0.01)
+            if not self.parameters_set:
+                self.parameters_set = self.set_parameters()
 
             # if self.params_need_update and self.params.done():
             #     self.params_need_update = False

@@ -42,11 +42,10 @@ class GStreamerFeed:
             {clock} \
             ! appsink name=sink emit-signals=true"
         else:
-            self.pipeline_string = f"udpsrc port={rtp_port} name=src timeout={timeout} \
+            self.pipeline_string = f"udpsrc port={rtp_port} name=src timeout={timeout}  \
             ! application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96 \
-            ! rtph264depay ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=RGB \
-            ! queue ! appsink sync=true max-buffers=1 drop=true name=sink emit-signals=true"
-
+            ! rtph264depay ! h264parse ! decodebin ! queue ! videoconvert ! video/x-raw,format=RGB \
+            ! queue ! appsink sync=false max-buffers=0 drop=true name=sink emit-signals=true"
             
         self.print("Gstreamer pipeline:", self.pipeline_string.replace("!","\n!"))
 

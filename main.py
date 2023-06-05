@@ -25,6 +25,7 @@ import yaml
 import pyqtgraph as pg
 import gstreamer_plots
 import ping
+import led
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -44,10 +45,121 @@ try:
     from std_msgs.msg import Float64MultiArray
     from talos_controller_msgs.msg import float64_array
 except Exception as e:
-    print("WARNING, ROS disabled: CANNOT IMPORT ROS")
+    print("WARNING, ROS 1 disabled: CANNOT IMPORT ROS")
     print(e)
     USE_ROS = False
 
+
+# this only checks of ros is available (the rest of ROS queries will use timers)
+class RosThread(QThread):
+    master_online =  pyqtSignal(int)
+    ros_control_online =  pyqtSignal(int)
+    battery = pyqtSignal(int)
+    motors = pyqtSignal(object)
+    controllers = pyqtSignal(object)
+    load_average =  pyqtSignal(float)
+        
+    def __init__(self, conf):
+        super().__init__()
+        self.conf = conf
+        self.ros_master = None
+        self.controller_lister = None
+        self.topic_diag = None
+        self.controller_states = {}
+        self.motor_states = {}
+        self.robot = self.conf['robot_name']
+
+    def reinit(self):
+        self.topic_diag = None
+        self.controller_lister = None
+        self.ros_master = None
+        
+    def check_diagnostics(self):
+        if  self.ros_master != None and self.topic_diag == None:
+            print("Recreating the diagnostic subscription")
+            rospy.init_node('dashboard', anonymous=True,  disable_signals=True)
+            self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
+
+    # callback for diagnostics
+    def diag_cb(self, msg):
+        #print('diag cb')
+        for m in msg.status:
+            if m.name == '/Hardware/Battery':
+                self.battery_value = float(m.values[0].value.replace("%", ''))
+                self.battery.emit(self.battery_value)
+            elif m.name == "/Hardware/Control PC/Load Average":
+                load_average = float(m.values[1].value)
+                self.load_average.emit(load_average)
+            elif "/Hardware/Motor/" in m.name:
+                if self.robot == "Talos":
+                    n = m.name.split("/")[-1]
+                    mode = m.values[8].value
+                    if m.message[0] == ' ':
+                        self.motors[n] = 1  # OK
+                    else:
+                        self.motors[n] = 0  # error
+                else:  # Tiago
+                    n = m.name.split("/")[-1]
+                    for i in m.values:
+                        if i.key == "Errors Detected":
+                            if i.value == "None":
+                                self.motor_states[n] = 1
+                            else:
+                                self.motor_states[n] = 0
+                        # different keys for dynamixels
+                        if i.key == "Error Description":
+                            if i.value != "":
+                                self.motor_states[n] = 0
+                            else:
+                                self.motor_states[n] = 1
+        self.motors.emit(self.motor_states)
+
+    def check_ros(self):
+        os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
+        if self.ros_master == None:
+            self.ros_master = rosgraph.Master(
+                '/rostopic', os.environ["ROS_MASTER_URI"])
+        try:
+            if self.ros_master.is_online():
+                self.master_online.emit(1)
+                self.ros_pubs, self.ros_subs = rostopic.get_topic_list(
+                    master=self.ros_master)
+            else:
+                self.master_online.emit(0)
+                self.reinit()
+        except Exception as e:
+            print("Ros: exception", e)
+            self.master_online.emit(0)
+            self.reinit()
+
+    
+    def check_ros_control(self):
+         if self.ros_master != None:
+            try:
+                if self.controller_lister == None:
+                    rospy.wait_for_service('/controller_manager/list_controllers', timeout=0.05)
+                    self.controller_lister = ControllerLister('/controller_manager')
+                self.controller_list = self.controller_lister()
+                for i in self.controller_states.keys():
+                    self.controller_states[i] = False
+                for c in self.controller_list:
+                    if c.state == 'running':
+                        self.controller_states[c.name] = True
+
+                self.ros_control_online.emit(1)
+                self.controllers.emit(self.controller_states)
+            except:
+                self.ros_control_online.emit(0)
+                self.controller_lister = None
+
+
+
+    def run(self):
+        while True:
+            self.check_ros()
+            self.check_ros_control()
+            self.check_diagnostics()
+            time.sleep(self.conf['ros_period'] / 1000.0)
 
 
 # The new Stream Object which replaces the default stream associated with sys.stdout/stderr
@@ -105,7 +217,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
     new_data_net_sent_signal = pyqtSignal(float)
     new_data_net_recv_signal = pyqtSignal(float)
 
-    # TODO move to a thread
+    # TODO move to a thread ?
     def update_network_stats(self):
         net_io_counters = psutil.net_io_counters(pernic=True)
         iname = self.conf['local_interface_name']
@@ -192,6 +304,37 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.led_controllers = {}
         for k in self.led_topics:
             self.led_color(self.led_topics[k], 'red')
+        self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
+
+
+    def update_controllers_cb(self, controller_list):
+        # create new leds if needed
+        for c in controller_list.keys():
+            if not c in self.led_controllers.keys():
+                self.led_controllers[c] = led.Led(c)
+                self.led_controllers[c].setObjectName(c)
+                self.verticalLayout.insertWidget(len(self.verticalLayout)-1,  self.led_controllers[c])
+
+        # remove leds if needed
+        for n in self.led_controllers.keys():
+            if not n in controller_list:
+                self.verticalLayout.removeWidget(self.led_controllers[n])
+                self.led_controllers[n].deleteLater()
+                del self.led_controllers[n]
+
+        # some controllers can be loaded but not running
+        for n,s in controller_list.items():
+            self.led_controllers[n].set_state(s)
+
+
+    def update_motors_cb(self, motor_list):
+        for m in motor_list:
+            if not m in self.led_motors.keys():
+                self.led_motors[m] = led.Led(m)
+                self.led_motors[m].setObjectName(m)
+                self.layout_motors.insertWidget(len(self.layout_motors)-1,  self.led_motors[m])
+        for n,s in motor_list.items():
+            self.led_motors[n].set_state(s)
 
     def update_ros_control(self):
         # always check ROS (again)
@@ -388,43 +531,34 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         # ros
         if USE_ROS:
-            self.timer_ros = QTimer()
-            self.timer_ros.timeout.connect(self.update_ros_topics)
-            self.timer_ros.start(int(self.conf['ros_period']))
-
+            # check if ROS is alive
+            self.thread_ros = RosThread(self.conf)
+            self.thread_ros.start()
+            self.thread_ros.master_online.connect(self.led_ros.set_state)
+            self.thread_ros.controllers.connect(self.update_controllers_cb)
+            self.thread_ros.motors.connect(self.update_motors_cb)
+            self.thread_ros.ros_control_online.connect(self.led_controller.set_state)
             # topic list
             self.topic_list = self.conf['topics']
             self.led_topics = {}
             for k in self.topic_list:
-                self.led_topics[k] = QtWidgets.QRadioButton(
-                    k, self.centralwidget)
+                self.led_topics[k] = led.Led(k)
                 self.led_topics[k].setObjectName(k)
-                self.layout_topics.insertWidget(
-                    len(self.layout_topics) - 1, self.led_topics[k])
-                self.led_color(self.led_topics[k], 'red')
+                self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
 
             self.led_controllers = {}
             self.timer_ros_control = QTimer()
-            self.timer_ros_control.timeout.connect(self.update_ros_control)
-            self.ros_control_ok = False
-            self.timer_ros_control.start(int(self.conf['ros_control_period']))
+            #self.timer_ros_control.timeout.connect(self.update_ros_control)
+            #self.ros_control_ok = False
+#            self.timer_ros_control.start(int(self.conf['ros_control_period']))
 
             # diagnostics (motors, load, etc.)
             self.timer_diag = QTimer()
-            self.timer_diag.timeout.connect(self.update_diagnostics)
-            self.timer_diag.start(100)  # can be fast because only update GUI
-
-            self.cpu_queue = deque([], maxlen=50)
-            self.timer_cpu = QTimer()
-            self.timer_cpu.timeout.connect(self.update_cpu)
-            self.timer_cpu.start(100)
-
-            self.solver_queue = deque([], maxlen=50)
+            #self.timer_diag.timeout.connect(self.update_diagnostics)
+            #self.timer_diag.start(100)  # can be fast because only update GUI
+            
+            # init ROS
             self.reinit()
-            self.timer_solver = QTimer()
-            self.timer_solver.timeout.connect(self.update_solver)
-            self.timer_solver.start(100)
-
 
 def main():
 
