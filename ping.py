@@ -54,7 +54,7 @@ class PingThread(QThread):
             time.sleep(self.conf['ping_period'])
             #print("bad ping counter:", self.bad_ping_counter, "  started:", self.robot_started)
             if self.robot_started and self.bad_ping_counter >= self.conf['max_bad_ping']:
-                print("need restart")
+                print("Ping: need restart (too many bad pings -- robot is down)")
                 self.need_reset_signal.emit(2) # exit with 2
             if self.bad_ping_counter != 0:
                 self.ok.emit(2)

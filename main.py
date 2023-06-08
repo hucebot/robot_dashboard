@@ -2,7 +2,6 @@
 from gstreamer_window import GstreamerWindow
 from PyQt5.QtWidgets import QStyleFactory
 from PyQt5.QtWidgets import QApplication, QDesktopWidget
-import dashboard_ui
 from PyQt5 import QtWidgets, Qt
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
@@ -26,6 +25,7 @@ import pyqtgraph as pg
 import gstreamer_plots
 import ping
 import led
+import plot
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -54,11 +54,12 @@ except Exception as e:
 class RosThread(QThread):
     master_online =  pyqtSignal(int)
     ros_control_online =  pyqtSignal(int)
-    battery = pyqtSignal(int)
+    battery = pyqtSignal(float)
     motors = pyqtSignal(object)
     controllers = pyqtSignal(object)
     load_average =  pyqtSignal(float)
-        
+    need_reset = pyqtSignal(bool)
+
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
@@ -68,12 +69,24 @@ class RosThread(QThread):
         self.controller_states = {}
         self.motor_states = {}
         self.robot = self.conf['robot_name']
+        self.done = False
 
     def reinit(self):
         self.topic_diag = None
         self.controller_lister = None
         self.ros_master = None
-        
+    
+    def stop(self):
+        self.master_online.emit(0)
+        self.ros_control_online.emit(0)
+        # if we already called rospy.init_node, we need to restart the whole process
+        if self.topic_diag != None: 
+            self.need_reset.emit(True)
+        else:
+            self.controllers.emit({})
+            self.motors.emit({})
+            self.reinit()
+
     def check_diagnostics(self):
         if  self.ros_master != None and self.topic_diag == None:
             print("Recreating the diagnostic subscription")
@@ -126,11 +139,11 @@ class RosThread(QThread):
                     master=self.ros_master)
             else:
                 self.master_online.emit(0)
-                self.reinit()
+                self.stop()
         except Exception as e:
             print("Ros: exception", e)
             self.master_online.emit(0)
-            self.reinit()
+            self.stop()
 
     
     def check_ros_control(self):
@@ -159,8 +172,7 @@ class RosThread(QThread):
             self.check_ros()
             self.check_ros_control()
             self.check_diagnostics()
-            time.sleep(self.conf['ros_period'] / 1000.0)
-
+            time.sleep(self.conf['ros_period'] / 1000.0)        
 
 # The new Stream Object which replaces the default stream associated with sys.stdout/stderr
 class WriteStream(QObject):
@@ -213,7 +225,7 @@ class WriteStream(QObject):
         self.log_file.flush()
 
 
-class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
+class Dashboard(QtWidgets.QMainWindow):
     new_data_net_sent_signal = pyqtSignal(float)
     new_data_net_recv_signal = pyqtSignal(float)
 
@@ -268,7 +280,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         if self.led_robot == 1 and self.led_ros.state != 1:
             print("ROS is down, but robot is up, restarting")
-            sys.exit(2) # we cannot recover from this!
+            #sys.exit(2) # we cannot recover from this!
             #self.reinit()
 
         # diagnostics
@@ -284,7 +296,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         print("reinit, called from:",
               frame[3] + " line:", frame.frame.f_lineno)
         self.led_ros.set_state(0)
-        self.led_battery.set_state(0)
+        #self.led_battery.set_state(0)
         self.led_controller.set_state(0)
         self.emergency = True
         self.controller_lister = None
@@ -299,7 +311,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_motors[k].deleteLater()
         self.led_motors = {}
         for k in self.led_controllers.keys():
-            self.verticalLayout.removeWidget(self.led_controllers[k])
+            self.controllers_layout.removeWidget(self.led_controllers[k])
             self.led_controllers[k].deleteLater()
         self.led_controllers = {}
         for k in self.led_topics:
@@ -313,12 +325,12 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             if not c in self.led_controllers.keys():
                 self.led_controllers[c] = led.Led(c)
                 self.led_controllers[c].setObjectName(c)
-                self.verticalLayout.insertWidget(len(self.verticalLayout)-1,  self.led_controllers[c])
+                self.controllers_layout.insertWidget(len(self.controllers_layout)-1,  self.led_controllers[c])
 
         # remove leds if needed
         for n in self.led_controllers.keys():
             if not n in controller_list:
-                self.verticalLayout.removeWidget(self.led_controllers[n])
+                self.controllers_layout.removeWidget(self.led_controllers[n])
                 self.led_controllers[n].deleteLater()
                 del self.led_controllers[n]
 
@@ -355,8 +367,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                         self.led_controllers[c.name] = QtWidgets.QRadioButton(
                             c.name, self.centralwidget)
                         self.led_controllers[c.name].setObjectName(c.name)
-                        self.verticalLayout.insertWidget(
-                            len(self.verticalLayout)-1, self.led_controllers[c.name])
+                        self.controllers_layout.insertWidget(
+                            len(self.controllers_layout)-1, self.led_controllers[c.name])
                     if c.state == 'running':
                         self.controller_states[c.name] = True
                 for c in self.led_controllers.keys():
@@ -388,13 +400,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         else:
             self.led_color(self.led_emergency, GREEN)
         # battery
-        self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
-        if self.battery_value < 20 or self.led_ros.state != 1:
-            self.led_color(self.led_battery, 'red')
-        elif self.battery_value < 60:
-            self.led_color(self.led_battery, 'orange')
-        else:
-            self.led_color(self.led_battery, GREEN)
+        #self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
+        # if self.battery_value < 20 or self.led_ros.state != 1:
+        #     self.led_color(self.led_battery, 'red')
+        # elif self.battery_value < 60:
+        #     self.led_color(self.led_battery, 'orange')
+        # else:
+        #     self.led_color(self.led_battery, GREEN)
 
         #print("#motors:", len(self.motors), self.motors.keys(),
         #      '#led motors', len(self.led_motors))
@@ -461,34 +473,100 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                             else:
                                 self.motors[n] = 0
 
-    # ROS callback for the solver (not GUI callback)
-    def solver_cb(self, msg):
-        # print(msg)
-        self.solver_queue.append(self.data[0])
 
-    def update_cpu(self):
-        pass
-        # if not self.robot_ok:
-        #     self.plot_cpu.error(True)
-        # else:
-        #     self.plot_cpu.error(False)
-        #     if (len(self.cpu_queue) != 0):
-        #         self.plot_cpu.set_data(self.cpu_queue)
-        # self.plot_cpu.canvas.ax.set_ylim((0, 10))
+    def setup_ui(self):
+        # the two main layouts
+        self.main_layout =  QtWidgets.QVBoxLayout()
+        self.setCentralWidget(QtWidgets.QWidget())
+        self.centralWidget().setLayout(self.main_layout)
+        self.horizontal_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(self.horizontal_layout)
 
-    def update_solver(self):
-        pass
-        # if not self.controller_running:
-        #     self.plot_solver.error(True)
-        # else:
-        #     self.plot_solver.error(False)
-        # if len(self.solver_queue) != 0:
-        #     self.plot_solver.set_data(self.solver_queue)
-        # self.plot_solver.canvas.ax.set_ylim((0, 10))
+        # columns
+        n_cols = 4
+        self.columns = []
+        for i in range(n_cols):
+            c = QtWidgets.QVBoxLayout()
+            self.horizontal_layout.addLayout(c)
+            self.columns += [c]
+
+        # quit        
+        self.button_quit = QtWidgets.QPushButton('QUIT')
+        self.columns[0].addWidget(self.button_quit)
+
+        # robot name
+        self.label_robot_name = QtWidgets.QLabel()
+        self.columns[0].addWidget(self.label_robot_name)
+        # ros URI
+        self.label_ros_uri = QtWidgets.QLabel()
+        self.columns[0].addWidget(self.label_ros_uri)
+        # ROS core
+        self.led_ros = led.Led("ROS Core")
+        self.columns[0].addWidget(self.led_ros)
+        # a line
+        self.line = QtWidgets.QFrame()
+        self.columns[0].addWidget(self.line)
+
+        # conntroller list
+        self.controllers_layout = self.columns[0]
+        self.led_controller = led.Led("Controller Manager")
+        self.led_controller.setObjectName("led_controller")
+        self.columns[0].addWidget(self.led_controller)
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.columns[0].addItem(spacer)
+
+        # motor list
+        self.layout_motors = self.columns[1]
+        self.label_motors = QtWidgets.QLabel()
+        self.layout_motors.addWidget(self.label_motors)
+        self.label_motors.setText('<center><b>Motors</b></center>')
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.layout_motors.addItem(spacer)
+
+        # watch topic list
+        self.layout_topics = self.columns[2]
+        self.label_topics = QtWidgets.QLabel()
+        self.layout_topics.addWidget(self.label_topics)
+        self.label_topics.setText('<center><b>topics</b></center>')
+        self.layout_topics.addWidget(self.label_topics)
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.layout_topics.addItem(spacer)
+
+        # robot plots
+        self.layout_network = self.columns[3]
+        self.led_robot = led.Led('Robot computer')
+        self.layout_network.addWidget(self.led_robot)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Ping [ms]</b></center>'))
+        self.plot_widget_ping = plot.Plot()
+        self.layout_network.addWidget(self.plot_widget_ping)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Battery [%]</b></center>'))
+        self.plot_battery = plot.Plot()
+        self.layout_network.addWidget(self.plot_battery)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Load average</b></center>'))
+        self.plot_cpu = plot.Plot()
+        self.layout_network.addWidget(self.plot_cpu)
+
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>[t -> robot] [Mbps]</b></center>'))
+        self.plot_upstream = plot.Plot()
+        self.layout_network.addWidget(self.plot_upstream)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>[robot -> t] [Mbps]</b></center>'))
+        self.plot_downstream = plot.Plot()
+        self.layout_network.addWidget(self.plot_downstream)
+
+        self.text_stdout = QtWidgets.QTextEdit()
+        self.text_stdout.setObjectName("text_stdout")
+        self.main_layout.addWidget(self.text_stdout)
+
+
 
     def __init__(self, conf):
         super(self.__class__, self).__init__()
-        self.setupUi(self)
+        self.setup_ui()
         self.conf = conf
 
         # connect stdout & stderr
@@ -499,8 +577,6 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
         self.button_quit.clicked.connect(QApplication.quit)
 
-        self.battery_value = 0
-        self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.led_motors = {}
         # give 100ms to answer
         socket.setdefaulttimeout(float(self.conf['socket_timeout']))
@@ -513,7 +589,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
-        self.thread_ping.need_reset_signal.connect(lambda x: sys.exit(2))
+        self.thread_ping.need_reset_signal.connect(sys.exit)
        
         # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
@@ -538,7 +614,15 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.thread_ros.controllers.connect(self.update_controllers_cb)
             self.thread_ros.motors.connect(self.update_motors_cb)
             self.thread_ros.ros_control_online.connect(self.led_controller.set_state)
-            # topic list
+            self.thread_ros.need_reset.connect(lambda x: sys.exit(2))
+
+            self.thread_ros.battery.connect(self.plot_battery.new_data)
+            self.plot_battery.setYRange(0, 100.01)
+
+            self.thread_ros.load_average.connect(self.plot_cpu.new_data)
+            self.plot_cpu.setYRange(0, 10)            
+
+            # topic list            
             self.topic_list = self.conf['topics']
             self.led_topics = {}
             for k in self.topic_list:
@@ -547,17 +631,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                 self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
 
             self.led_controllers = {}
-            self.timer_ros_control = QTimer()
-            #self.timer_ros_control.timeout.connect(self.update_ros_control)
-            #self.ros_control_ok = False
-#            self.timer_ros_control.start(int(self.conf['ros_control_period']))
-
-            # diagnostics (motors, load, etc.)
-            self.timer_diag = QTimer()
-            #self.timer_diag.timeout.connect(self.update_diagnostics)
-            #self.timer_diag.start(100)  # can be fast because only update GUI
-            
-            # init ROS
+           
             self.reinit()
 
 def main():
