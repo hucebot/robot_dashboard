@@ -91,26 +91,26 @@ class RosThread(QThread):
         if  self.ros_master != None and self.topic_diag == None:
             print("Recreating the diagnostic subscription")
             rospy.init_node('dashboard', anonymous=True,  disable_signals=True)
-            self.topic_diag = rospy.Subscriber("/diagnostics_agg", DiagnosticArray, self.diag_cb)
+            self.topic_diag = rospy.Subscriber("/diagnostics", DiagnosticArray, self.diag_cb)
+            print("Subscribed to /diagnostics")
 
     # callback for diagnostics
     def diag_cb(self, msg):
-        #print('diag cb')
         for m in msg.status:
-            if m.name == '/Hardware/Battery':
+            if m.name == 'Hardware: Battery':
                 self.battery_value = float(m.values[0].value.replace("%", ''))
                 self.battery.emit(self.battery_value)
-            elif m.name == "/Hardware/Control PC/Load Average":
+            elif m.name == "Hardware: Control PC: Load Average":
                 load_average = float(m.values[1].value)
                 self.load_average.emit(load_average)
-            elif "/Hardware/Motor/" in m.name:
+            elif "Hardware: Motor:" in m.name:
                 if self.robot == "Talos":
-                    n = m.name.split("/")[-1]
+                    n = m.name.split(":")[-1].replace(" ",'')
                     mode = m.values[8].value
                     if m.message[0] == ' ':
-                        self.motors[n] = 1  # OK
+                        self.motor_states[n] = 1  # OK
                     else:
-                        self.motors[n] = 0  # error
+                        self.motor_states[n] = 0  # error
                 else:  # Tiago
                     n = m.name.split("/")[-1]
                     for i in m.values:
@@ -128,6 +128,7 @@ class RosThread(QThread):
         self.motors.emit(self.motor_states)
 
     def check_ros(self):
+        #print("Checking ros...")
         os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
         if self.ros_master == None:
             self.ros_master = rosgraph.Master(
@@ -137,9 +138,11 @@ class RosThread(QThread):
                 self.master_online.emit(1)
                 self.ros_pubs, self.ros_subs = rostopic.get_topic_list(
                     master=self.ros_master)
+                #print("ROS Master OK")
             else:
                 self.master_online.emit(0)
                 self.stop()
+               # print("ROS master is not online")
         except Exception as e:
             print("Ros: exception", e)
             self.master_online.emit(0)
@@ -147,6 +150,7 @@ class RosThread(QThread):
 
     
     def check_ros_control(self):
+         #print("Checking ROS control...")
          if self.ros_master != None:
             try:
                 if self.controller_lister == None:
@@ -161,7 +165,8 @@ class RosThread(QThread):
 
                 self.ros_control_online.emit(1)
                 self.controllers.emit(self.controller_states)
-            except:
+            except Exception as e:
+                print("ROS Controller manager not available (exception)", e)
                 self.ros_control_online.emit(0)
                 self.controller_lister = None
 
@@ -290,6 +295,7 @@ class Dashboard(QtWidgets.QMainWindow):
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber(
                 "/diagnostics_agg", DiagnosticArray, self.diag_cb)
+            print("subscribed to /diagnostic_agg")
 
     def reinit(self):
         frame = inspect.stack()[1]
