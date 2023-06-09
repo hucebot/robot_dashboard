@@ -11,6 +11,7 @@ class Led(QRadioButton):
         super().__init__(text)
         self.state = 0
         self.setDisabled(True)
+        self.set_state(self.state)
 
     @pyqtSlot(int)
     def set_state(self, state):

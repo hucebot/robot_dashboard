@@ -1,20 +1,20 @@
 # general configuration
 robot_name: Tiago
-robot_ip: 192.168.0.162
-local_interface_name: "enx3448eda495e3"
+robot_ip: 192.168.1.162
+local_interface_name: "wlp111s0"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
-
+window_border: true
 # periods to run things
 ping_period: 1.0 # in seconds
-ping_timeout: 100.0 # in mseconds
-max_bad_ping: 4
-ros_control_period: 500.0 # in ms
-ros_period: 500.0 # ?
-
+ping_timeout: 200.0 # in mseconds
+max_bad_ping: 5
+ros_control_period: 2500.0 # in ms
+ros_period: 500
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 
 # gstreamer
+gstreamer_topic: '/gstreamer_service'
 gstreamer_ip: 192.168.0.11
 rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
@@ -22,6 +22,9 @@ rtcp_port: 5001 # streamer robot->station (control)
 gst_clock: true # should we display the clock on the video
 gst_verbose: true
 use_rtcp: false
+rtp_host: "localhost" # deprecated
+ntp_server: 'time.apple.com'
+use_rtcp: false # deprecated
 
 # plot configurations
 plot_videostream_period: 10

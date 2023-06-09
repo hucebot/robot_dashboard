@@ -2,13 +2,12 @@
 from gstreamer_window import GstreamerWindow
 from PyQt5.QtWidgets import QStyleFactory
 from PyQt5.QtWidgets import QApplication, QDesktopWidget
-import dashboard_ui
 from PyQt5 import QtWidgets, Qt
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
+import dark_style
 import inspect
 
 import datetime
@@ -23,6 +22,10 @@ import socket
 import numpy as np
 import yaml
 import pyqtgraph as pg
+import gstreamer_plots
+import ping
+import led
+import plot
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -42,111 +45,196 @@ try:
     from std_msgs.msg import Float64MultiArray
     from talos_controller_msgs.msg import float64_array
 except Exception as e:
-    print("WARNING, ROS disabled: CANNOT IMPORT ROS")
+    print("WARNING, ROS 1 disabled: CANNOT IMPORT ROS")
     print(e)
     USE_ROS = False
 
 
-def dark_style(app):
-    # set a dark theme to the app!
-    app.setStyle('fusion')
-    dark_palette = QPalette()
+# this only checks of ros is available (the rest of ROS queries will use timers)
+class RosThread(QThread):
+    master_online =  pyqtSignal(int)
+    ros_control_online =  pyqtSignal(int)
+    battery = pyqtSignal(float)
+    motors = pyqtSignal(object)
+    controllers = pyqtSignal(object)
+    load_average =  pyqtSignal(float)
+    need_reset = pyqtSignal(bool)
 
-    dark_palette.setColor(QPalette.Window, QColor(0, 0, 0))
-    dark_palette.setColor(QPalette.WindowText, Qt.white)
-    dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
-    dark_palette.setColor(QPalette.ToolTipText, Qt.white)
-    dark_palette.setColor(QPalette.Text, Qt.white)
-    dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.Button, QColor(30, 30, 30))
-    dark_palette.setColor(QPalette.ButtonText, Qt.white)
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.ButtonText, QColor(100, 100, 100))
-    dark_palette.setColor(QPalette.BrightText, Qt.red)
-    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    dark_palette.setColor(
-        QPalette.Disabled, QPalette.Highlight, QColor(100, 100, 100))
+    def __init__(self, conf):
+        super().__init__()
+        self.conf = conf
+        self.ros_master = None
+        self.controller_lister = None
+        self.topic_diag = None
+        self.controller_states = {}
+        self.motor_states = {}
+        self.robot = self.conf['robot_name']
+        self.done = False
 
-    dark_palette.setColor(QPalette.HighlightedText, Qt.black)
+    def reinit(self):
+        self.topic_diag = None
+        self.controller_lister = None
+        self.ros_master = None
+    
+    def stop(self):
+        self.master_online.emit(0)
+        self.ros_control_online.emit(0)
+        # if we already called rospy.init_node, we need to restart the whole process
+        if self.topic_diag != None: 
+            self.need_reset.emit(True)
+        else:
+            self.controllers.emit({})
+            self.motors.emit({})
+            self.reinit()
 
-    app.setPalette(dark_palette)
+    def check_diagnostics(self):
+        if  self.ros_master != None and self.topic_diag == None:
+            print("Recreating the diagnostic subscription")
+            rospy.init_node('dashboard', anonymous=True,  disable_signals=True)
+            self.topic_diag = rospy.Subscriber("/diagnostics", DiagnosticArray, self.diag_cb)
+            print("Subscribed to /diagnostics")
 
-    app.setStyleSheet(
-        "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }")
-    # end of dark theme
+    # callback for diagnostics
+    def diag_cb(self, msg):
+        for m in msg.status:
+            if m.name == 'Hardware: Battery':
+                self.battery_value = float(m.values[0].value.replace("%", ''))
+                self.battery.emit(self.battery_value)
+            elif m.name == "Hardware: Control PC: Load Average":
+                load_average = float(m.values[1].value)
+                self.load_average.emit(load_average)
+            elif "Hardware: Motor:" in m.name:
+                if self.robot == "Talos":
+                    n = m.name.split(":")[-1].replace(" ",'')
+                    mode = m.values[8].value
+                    if m.message[0] == ' ':
+                        self.motor_states[n] = 1  # OK
+                    else:
+                        self.motor_states[n] = 0  # error
+                else:  # Tiago
+                    n = m.name.split("/")[-1]
+                    for i in m.values:
+                        if i.key == "Errors Detected":
+                            if i.value == "None":
+                                self.motor_states[n] = 1
+                            else:
+                                self.motor_states[n] = 0
+                        # different keys for dynamixels
+                        if i.key == "Error Description":
+                            if i.value != "":
+                                self.motor_states[n] = 0
+                            else:
+                                self.motor_states[n] = 1
+        self.motors.emit(self.motor_states)
 
-# The new Stream Object which replaces the default stream associated with sys.stdout
+    def check_ros(self):
+        #print("Checking ros...")
+        os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
+        if self.ros_master == None:
+            self.ros_master = rosgraph.Master(
+                '/rostopic', os.environ["ROS_MASTER_URI"])
+        try:
+            if self.ros_master.is_online():
+                self.master_online.emit(1)
+                self.ros_pubs, self.ros_subs = rostopic.get_topic_list(
+                    master=self.ros_master)
+                #print("ROS Master OK")
+            else:
+                self.master_online.emit(0)
+                self.stop()
+               # print("ROS master is not online")
+        except Exception as e:
+            print("Ros: exception", e)
+            self.master_online.emit(0)
+            self.stop()
+
+    
+    def check_ros_control(self):
+         #print("Checking ROS control...")
+         if self.ros_master != None:
+            try:
+                if self.controller_lister == None:
+                    rospy.wait_for_service('/controller_manager/list_controllers', timeout=0.05)
+                    self.controller_lister = ControllerLister('/controller_manager')
+                self.controller_list = self.controller_lister()
+                for i in self.controller_states.keys():
+                    self.controller_states[i] = False
+                for c in self.controller_list:
+                    if c.state == 'running':
+                        self.controller_states[c.name] = True
+
+                self.ros_control_online.emit(1)
+                self.controllers.emit(self.controller_states)
+            except Exception as e:
+                print("ROS Controller manager not available (exception)", e)
+                self.ros_control_online.emit(0)
+                self.controller_lister = None
+
+
+
+    def run(self):
+        while True:
+            self.check_ros()
+            self.check_ros_control()
+            self.check_diagnostics()
+            time.sleep(self.conf['ros_period'] / 1000.0)        
+
+# The new Stream Object which replaces the default stream associated with sys.stdout/stderr
 class WriteStream(QObject):
     append_text = pyqtSignal(str)
     set_color = pyqtSignal(QColor)
 
-    def __init__(self,  text_edit, color, prefix):
+    def __init__(self, text_edit, color, name):
         super().__init__()
-        filename = prefix + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+        filename = name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
         self.color = color
         self.log_file = open(filename, "w")
         self.text_edit = text_edit
-        self.append_text.connect(self.text_edit.insertPlainText)
+        # could be moved elsewhere
+        self.text_edit.setReadOnly(True)
+        self.sb = self.text_edit.verticalScrollBar()
+        self.sb.setValue(self.sb.maximum())
+
+        self.append_text.connect(self.append)
         self.set_color.connect(self.text_edit.setTextColor)
+        self.stderr = sys.stderr
+        self.stdout = sys.stdout
+        self.name = name
+        if name == 'stdout':
+            sys.stdout = self
+        if name == 'stderr':
+            sys.stderr = self
+
+    def append(self, msg):
+        self.text_edit.insertPlainText(msg)
+        # automatic scrolling
+        sb = self.text_edit.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
     def write(self, text):
         self.log_file.write(text)
+        if self.name == 'stdout':
+            self.stdout.write(text)
+        if self.name == 'stderr':
+            self.stderr.write(text)
+
         # we need to use signals/slots to be thread safe
         self.set_color.emit(self.color)
         self.append_text.emit(text)
 
+    def flush(self):
+        if self.name == 'stdout':
+            self.stdout.flush()
+        if self.name == 'stderr':
+            self.stderr.flush()
+        self.log_file.flush()
 
-# ping is blocking and we do not want that
-class PingThread(QThread):
-    new_data = pyqtSignal(float)
-    need_reset_signal = pyqtSignal(int)
-    ok = pyqtSignal(int)
-    ping = 0
-    bad_ping_counter = 0
-    robot_started = False
 
-    def __init__(self, conf, ip):
-        super().__init__()
-        self.conf = conf
-        self.ip = ip
-        print("IP:", self.ip, self)
-
-    def run(self):
-        while True:
-            try:
-                print("self.ip:", self.ip)
-                t = "-t" + str(self.conf['ping_timeout'])
-                c = subprocess.check_output(
-                    ["fping", "-c1", t, self.ip], stderr=subprocess.STDOUT)
-                t = c.split(b" ")[5]
-                self.ping = float(t)
-                self.ok.emit(1)
-                self.robot_started = True # we started once
-                self.bad_ping_counter = 0
-            except Exception as e:
-                print(e)
-                self.ping = self.conf['ping_timeout']
-                self.ok.emit(0)
-                self.bad_ping_counter += 1
-            print("emit new data")
-            self.new_data.emit(self.ping)
-            time.sleep(self.conf['ping_period'])
-            print("bad ping counter:", self.bad_ping_counter, "  started:", self.robot_started)
-            if self.robot_started and self.bad_ping_counter >= self.conf['max_bad_ping']:
-                print("need restart")
-                self.need_reset_signal.emit(2) # exit with 2
-            if self.bad_ping_counter != 0:
-                self.ok.emit(2)
-
-class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
+class Dashboard(QtWidgets.QMainWindow):
     new_data_net_sent_signal = pyqtSignal(float)
     new_data_net_recv_signal = pyqtSignal(float)
 
-    # TODO move to a thread
+    # TODO move to a thread ?
     def update_network_stats(self):
         net_io_counters = psutil.net_io_counters(pernic=True)
         iname = self.conf['local_interface_name']
@@ -197,7 +285,7 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         if self.led_robot == 1 and self.led_ros.state != 1:
             print("ROS is down, but robot is up, restarting")
-            sys.exit(2) # we cannot recover from this!
+            #sys.exit(2) # we cannot recover from this!
             #self.reinit()
 
         # diagnostics
@@ -207,13 +295,14 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             rospy.init_node('dashboard', anonymous=True)
             self.topic_diag = rospy.Subscriber(
                 "/diagnostics_agg", DiagnosticArray, self.diag_cb)
+            print("subscribed to /diagnostic_agg")
 
     def reinit(self):
         frame = inspect.stack()[1]
         print("reinit, called from:",
               frame[3] + " line:", frame.frame.f_lineno)
         self.led_ros.set_state(0)
-        self.led_battery.set_state(0)
+        #self.led_battery.set_state(0)
         self.led_controller.set_state(0)
         self.emergency = True
         self.controller_lister = None
@@ -228,11 +317,42 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
             self.led_motors[k].deleteLater()
         self.led_motors = {}
         for k in self.led_controllers.keys():
-            self.verticalLayout.removeWidget(self.led_controllers[k])
+            self.controllers_layout.removeWidget(self.led_controllers[k])
             self.led_controllers[k].deleteLater()
         self.led_controllers = {}
         for k in self.led_topics:
             self.led_color(self.led_topics[k], 'red')
+        self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
+
+
+    def update_controllers_cb(self, controller_list):
+        # create new leds if needed
+        for c in controller_list.keys():
+            if not c in self.led_controllers.keys():
+                self.led_controllers[c] = led.Led(c)
+                self.led_controllers[c].setObjectName(c)
+                self.controllers_layout.insertWidget(len(self.controllers_layout)-1,  self.led_controllers[c])
+
+        # remove leds if needed
+        for n in self.led_controllers.keys():
+            if not n in controller_list:
+                self.controllers_layout.removeWidget(self.led_controllers[n])
+                self.led_controllers[n].deleteLater()
+                del self.led_controllers[n]
+
+        # some controllers can be loaded but not running
+        for n,s in controller_list.items():
+            self.led_controllers[n].set_state(s)
+
+
+    def update_motors_cb(self, motor_list):
+        for m in motor_list:
+            if not m in self.led_motors.keys():
+                self.led_motors[m] = led.Led(m)
+                self.led_motors[m].setObjectName(m)
+                self.layout_motors.insertWidget(len(self.layout_motors)-1,  self.led_motors[m])
+        for n,s in motor_list.items():
+            self.led_motors[n].set_state(s)
 
     def update_ros_control(self):
         # always check ROS (again)
@@ -253,8 +373,8 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                         self.led_controllers[c.name] = QtWidgets.QRadioButton(
                             c.name, self.centralwidget)
                         self.led_controllers[c.name].setObjectName(c.name)
-                        self.verticalLayout.insertWidget(
-                            len(self.verticalLayout)-1, self.led_controllers[c.name])
+                        self.controllers_layout.insertWidget(
+                            len(self.controllers_layout)-1, self.led_controllers[c.name])
                     if c.state == 'running':
                         self.controller_states[c.name] = True
                 for c in self.led_controllers.keys():
@@ -286,13 +406,13 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
         else:
             self.led_color(self.led_emergency, GREEN)
         # battery
-        self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
-        if self.battery_value < 20 or self.led_ros.state != 1:
-            self.led_color(self.led_battery, 'red')
-        elif self.battery_value < 60:
-            self.led_color(self.led_battery, 'orange')
-        else:
-            self.led_color(self.led_battery, GREEN)
+        #self.led_battery.setText("[" + str(self.battery_value) + "%] Battery")
+        # if self.battery_value < 20 or self.led_ros.state != 1:
+        #     self.led_color(self.led_battery, 'red')
+        # elif self.battery_value < 60:
+        #     self.led_color(self.led_battery, 'orange')
+        # else:
+        #     self.led_color(self.led_battery, GREEN)
 
         #print("#motors:", len(self.motors), self.motors.keys(),
         #      '#led motors', len(self.led_motors))
@@ -359,47 +479,110 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
                             else:
                                 self.motors[n] = 0
 
-    # ROS callback for the solver (not GUI callback)
-    def solver_cb(self, msg):
-        # print(msg)
-        self.solver_queue.append(self.data[0])
 
-    def update_cpu(self):
-        pass
-        # if not self.robot_ok:
-        #     self.plot_cpu.error(True)
-        # else:
-        #     self.plot_cpu.error(False)
-        #     if (len(self.cpu_queue) != 0):
-        #         self.plot_cpu.set_data(self.cpu_queue)
-        # self.plot_cpu.canvas.ax.set_ylim((0, 10))
+    def setup_ui(self):
+        # the two main layouts
+        self.main_layout =  QtWidgets.QVBoxLayout()
+        self.setCentralWidget(QtWidgets.QWidget())
+        self.centralWidget().setLayout(self.main_layout)
+        self.horizontal_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(self.horizontal_layout)
 
-    def update_solver(self):
-        pass
-        # if not self.controller_running:
-        #     self.plot_solver.error(True)
-        # else:
-        #     self.plot_solver.error(False)
-        # if len(self.solver_queue) != 0:
-        #     self.plot_solver.set_data(self.solver_queue)
-        # self.plot_solver.canvas.ax.set_ylim((0, 10))
+        # columns
+        n_cols = 4
+        self.columns = []
+        for i in range(n_cols):
+            c = QtWidgets.QVBoxLayout()
+            self.horizontal_layout.addLayout(c)
+            self.columns += [c]
+
+        # quit        
+        self.button_quit = QtWidgets.QPushButton('QUIT')
+        self.columns[0].addWidget(self.button_quit)
+
+        # robot name
+        self.label_robot_name = QtWidgets.QLabel()
+        self.columns[0].addWidget(self.label_robot_name)
+        # ros URI
+        self.label_ros_uri = QtWidgets.QLabel()
+        self.columns[0].addWidget(self.label_ros_uri)
+        # ROS core
+        self.led_ros = led.Led("ROS Core")
+        self.columns[0].addWidget(self.led_ros)
+        # a line
+        self.line = QtWidgets.QFrame()
+        self.columns[0].addWidget(self.line)
+
+        # conntroller list
+        self.controllers_layout = self.columns[0]
+        self.led_controller = led.Led("Controller Manager")
+        self.led_controller.setObjectName("led_controller")
+        self.columns[0].addWidget(self.led_controller)
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.columns[0].addItem(spacer)
+
+        # motor list
+        self.layout_motors = self.columns[1]
+        self.label_motors = QtWidgets.QLabel()
+        self.layout_motors.addWidget(self.label_motors)
+        self.label_motors.setText('<center><b>Motors</b></center>')
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.layout_motors.addItem(spacer)
+
+        # watch topic list
+        self.layout_topics = self.columns[2]
+        self.label_topics = QtWidgets.QLabel()
+        self.layout_topics.addWidget(self.label_topics)
+        self.label_topics.setText('<center><b>topics</b></center>')
+        self.layout_topics.addWidget(self.label_topics)
+        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.layout_topics.addItem(spacer)
+
+        # robot plots
+        self.layout_network = self.columns[3]
+        self.led_robot = led.Led('Robot computer')
+        self.layout_network.addWidget(self.led_robot)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Ping [ms]</b></center>'))
+        self.plot_widget_ping = plot.Plot()
+        self.layout_network.addWidget(self.plot_widget_ping)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Battery [%]</b></center>'))
+        self.plot_battery = plot.Plot()
+        self.layout_network.addWidget(self.plot_battery)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>Load average</b></center>'))
+        self.plot_cpu = plot.Plot()
+        self.layout_network.addWidget(self.plot_cpu)
+
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>[t -> robot] [Mbps]</b></center>'))
+        self.plot_upstream = plot.Plot()
+        self.layout_network.addWidget(self.plot_upstream)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b>[robot -> t] [Mbps]</b></center>'))
+        self.plot_downstream = plot.Plot()
+        self.layout_network.addWidget(self.plot_downstream)
+
+        self.text_stdout = QtWidgets.QTextEdit()
+        self.text_stdout.setObjectName("text_stdout")
+        self.main_layout.addWidget(self.text_stdout)
+
+
 
     def __init__(self, conf):
         super(self.__class__, self).__init__()
-        self.setupUi(self)
+        self.setup_ui()
         self.conf = conf
 
         # connect stdout & stderr
-        if not "--no-stdout-redirect" in sys.argv:
-            sys.stdout =  WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
-            sys.stderr =  WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
+        self.stdout = WriteStream(self.text_stdout, QColor(0, 255, 0), 'stdout')
+        self.stderr = WriteStream(self.text_stdout, QColor(255, 0, 0), 'stderr')
 
         self.robot = self.conf["robot_name"]
         self.label_robot_name.setText(f"<b>{self.robot}</b>")
         self.button_quit.clicked.connect(QApplication.quit)
 
-        self.battery_value = 0
-        self.label_ros_uri.setStyleSheet("font-weight: bold")
         self.led_motors = {}
         # give 100ms to answer
         socket.setdefaulttimeout(float(self.conf['socket_timeout']))
@@ -408,28 +591,17 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         # ping
         # a thread to update data without blocking the GUI
-        self.thread_ping = PingThread(self.conf, self.conf['robot_ip'])
+        self.thread_ping = ping.PingThread(self.conf, self.conf['robot_ip'])
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
-        self.thread_ping.need_reset_signal.connect(lambda x: sys.exit(2))
-        # the gstreamer ping thread
-        self.thread_ping_gstreamer = PingThread(self.conf, self.conf['gstreamer_ip'])
-        self.thread_ping_gstreamer.start()
-        self.thread_ping_gstreamer.new_data.connect(self.plot_ping_gstreamer.new_data)
-
+        self.thread_ping.need_reset_signal.connect(sys.exit)
+       
         # ranges
         self.plot_widget_ping.setYRange(0, self.conf['plot_ping_max'])
-        self.plot_ping_gstreamer.setYRange(0, self.conf['plot_ping_max'])
-
         self.plot_downstream.setYRange(0, self.conf['plot_downstream_max'])
         self.plot_upstream.setYRange(0, self.conf['plot_upstream_max'])
-        self.plot_fps.setYRange(0, self.conf['plot_fps_max'])
-        self.plot_bitrate.setYRange(0, self.conf['plot_bitrate_max'])
-        self.plot_jitter.setYRange(0, self.conf['plot_jitter_max'])
-        self.plot_delay.setYRange(0, self.conf['plot_delay_max'])
         
-
         # network stats
         self.timer_network = QTimer()
         self.timer_network.timeout.connect(self.update_network_stats)
@@ -441,43 +613,32 @@ class Dashboard(QtWidgets.QMainWindow, dashboard_ui.Ui_RobotDashBoard):
 
         # ros
         if USE_ROS:
-            self.timer_ros = QTimer()
-            self.timer_ros.timeout.connect(self.update_ros_topics)
-            self.timer_ros.start(int(self.conf['ros_period']))
+            # check if ROS is alive
+            self.thread_ros = RosThread(self.conf)
+            self.thread_ros.start()
+            self.thread_ros.master_online.connect(self.led_ros.set_state)
+            self.thread_ros.controllers.connect(self.update_controllers_cb)
+            self.thread_ros.motors.connect(self.update_motors_cb)
+            self.thread_ros.ros_control_online.connect(self.led_controller.set_state)
+            self.thread_ros.need_reset.connect(lambda x: sys.exit(2))
 
-            # topic list
+            self.thread_ros.battery.connect(self.plot_battery.new_data)
+            self.plot_battery.setYRange(0, 100.01)
+
+            self.thread_ros.load_average.connect(self.plot_cpu.new_data)
+            self.plot_cpu.setYRange(0, 10)            
+
+            # topic list            
             self.topic_list = self.conf['topics']
             self.led_topics = {}
             for k in self.topic_list:
-                self.led_topics[k] = QtWidgets.QRadioButton(
-                    k, self.centralwidget)
+                self.led_topics[k] = led.Led(k)
                 self.led_topics[k].setObjectName(k)
-                self.layout_topics.insertWidget(
-                    len(self.layout_topics) - 1, self.led_topics[k])
-                self.led_color(self.led_topics[k], 'red')
+                self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
 
             self.led_controllers = {}
-            self.timer_ros_control = QTimer()
-            self.timer_ros_control.timeout.connect(self.update_ros_control)
-            self.ros_control_ok = False
-            self.timer_ros_control.start(int(self.conf['ros_control_period']))
-
-            # diagnostics (motors, load, etc.)
-            self.timer_diag = QTimer()
-            self.timer_diag.timeout.connect(self.update_diagnostics)
-            self.timer_diag.start(100)  # can be fast because only update GUI
-
-            self.cpu_queue = deque([], maxlen=50)
-            self.timer_cpu = QTimer()
-            self.timer_cpu.timeout.connect(self.update_cpu)
-            self.timer_cpu.start(100)
-
-            self.solver_queue = deque([], maxlen=50)
+           
             self.reinit()
-            self.timer_solver = QTimer()
-            self.timer_solver.timeout.connect(self.update_solver)
-            self.timer_solver.start(100)
-
 
 def main():
 
@@ -488,27 +649,39 @@ def main():
     print("loaded: ", sys.argv[-1])
 
     app = QtWidgets.QApplication(sys.argv)
-    dark_style(app)
+    dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
+    dock = 80
     dashboard = Dashboard(conf)
-    dashboard.setGeometry(
-        0, 0, int(screen_size.width()/2 * 0.95), screen_size.height())
-   # dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    dashboard.setGeometry(0, 0, 0, screen_size.height())
+    if conf['window_border'] == False:
+        dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
-    video = GstreamerWindow(conf, dashboard)
-    video.setGeometry(int(screen_size.width()/2), 0,
-                      int(screen_size.width()/2),
+
+    gplots = gstreamer_plots.GstreamerPlots(conf, standalone=False) # 80 is because of the dock...
+    gplots.setGeometry(dashboard.size().width() + dock, 0, 0, screen_size.height())
+    if conf['window_border'] == False:
+        gplots.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+
+    gplots.show()
+
+    video = GstreamerWindow(conf, gplots)
+    video.setGeometry(dashboard.size().width() + gplots.width() + dock , 0,
+                      screen_size.width() - dashboard.size().width() - gplots.width() - dock,
                       screen_size.height())
-   # video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    if conf['window_border'] == False:
+        video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     video.show()
+ 
+ 
+ 
     dashboard.raise_()
     
-    video.thread.ready.connect(dashboard.led_gstreamer.set_state)
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
-    video.setWindowTitle("Video from " + conf['robot_ip'])
-
+    video.setWindowTitle("Video from " + conf['gstreamer_ip'])
+    gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
     app.exec_()
 
 
