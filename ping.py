@@ -1,19 +1,7 @@
-from PyQt5.QtWidgets import QStyleFactory
-from PyQt5.QtWidgets import QApplication, QDesktopWidget
-import dashboard_ui
-from PyQt5 import QtWidgets, Qt
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import dark_style
-import inspect
 
-import datetime
-import psutil
-
-import sys
-import os
 import time
 import subprocess
 

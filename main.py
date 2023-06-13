@@ -26,6 +26,9 @@ import gstreamer_plots
 import ping
 import led
 import plot
+import plot_wifi
+import wifi
+
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -489,7 +492,7 @@ class Dashboard(QtWidgets.QMainWindow):
         self.main_layout.addLayout(self.horizontal_layout)
 
         # columns
-        n_cols = 4
+        n_cols = 5
         self.columns = []
         for i in range(n_cols):
             c = QtWidgets.QVBoxLayout()
@@ -563,12 +566,29 @@ class Dashboard(QtWidgets.QMainWindow):
         self.layout_network.addWidget(QtWidgets.QLabel('<center><b>[robot -> t] [Mbps]</b></center>'))
         self.plot_downstream = plot.Plot()
         self.layout_network.addWidget(self.plot_downstream)
+    
 
+        # console with output
         self.text_stdout = QtWidgets.QTextEdit()
         self.text_stdout.setObjectName("text_stdout")
         self.main_layout.addWidget(self.text_stdout)
 
 
+
+
+        # wifi
+        self.layout_wifi = self.columns[4]
+
+        ## wifi plot
+        self.wifi_label = QtWidgets.QLabel('<center><b>WiFi quality</b></center>')
+        self.layout_wifi.addWidget(self.wifi_label)
+        self.plot_wifi_quality = plot.Plot()
+        self.layout_wifi.addWidget(self.plot_wifi_quality)
+
+        ## scanner
+        self.plot_wifi = plot_wifi.PlotWifi()
+        self.layout_wifi.addWidget(self.plot_wifi)
+       
 
     def __init__(self, conf):
         super(self.__class__, self).__init__()
@@ -610,6 +630,14 @@ class Dashboard(QtWidgets.QMainWindow):
         self.new_data_net_recv_signal.connect(self.plot_downstream.new_data)
         self.new_data_net_sent_signal.connect(self.plot_upstream.new_data)
         
+        # WIFI scans
+        self.thread_wifi = wifi.WifiScanThread(self.conf)
+        self.plot_wifi.setup(self.thread_wifi.channels)
+        self.thread_wifi.start()
+        self.thread_wifi.networks.connect(self.plot_wifi.new_data)
+        self.thread_wifi.essid.connect(lambda s: self.wifi_label.setText(f'<center><b>{s}</b></center>'))
+        self.thread_wifi.quality.connect(self.plot_wifi_quality.new_data)
+        self.plot_wifi_quality.setYRange(0, 100)
 
         # ros
         if USE_ROS:

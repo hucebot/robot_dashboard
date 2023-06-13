@@ -16,8 +16,12 @@ class Plot(pg.PlotWidget):
         self.data = deque([], maxlen=50) # todo make this 50 configuratble
         self.disableAutoRange()
         self.setXRange(0, 50)
-        self.getPlotItem().hideAxis('bottom')
-
+        #self.getPlotItem().hideAxis('bottom')
+        self.getPlotItem().showAxis('top')
+        self.getPlotItem().showAxis('right')
+        self.getPlotItem().getAxis('top').setTicks([])
+        self.getPlotItem().getAxis('right').setTicks([])
+        self.getPlotItem().getAxis('bottom').setTicks([])
 
     @pyqtSlot(float)
     def new_data(self, v):
