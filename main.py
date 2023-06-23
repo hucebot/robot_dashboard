@@ -1,7 +1,6 @@
 #!/usr/bin/python
-from gstreamer_window import GstreamerWindow
-from PyQt5.QtWidgets import QStyleFactory
-from PyQt5.QtWidgets import QApplication, QDesktopWidget
+
+from PyQt5.QtWidgets import QApplication, QDesktopWidget, QFileDialog
 from PyQt5 import QtWidgets, Qt
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
@@ -23,6 +22,7 @@ import numpy as np
 import yaml
 import pyqtgraph as pg
 import gstreamer_plots
+from gstreamer_window import GstreamerWindow
 import ping
 import led
 import plot
@@ -503,6 +503,11 @@ class Dashboard(QtWidgets.QMainWindow):
         self.button_quit = QtWidgets.QPushButton('QUIT')
         self.columns[0].addWidget(self.button_quit)
 
+        # window layout
+        self.button_save_windows = QtWidgets.QPushButton('Save layout')
+        self.columns[0].addWidget(self.button_save_windows)
+
+
         # robot name
         self.label_robot_name = QtWidgets.QLabel()
         self.columns[0].addWidget(self.label_robot_name)
@@ -671,34 +676,36 @@ class Dashboard(QtWidgets.QMainWindow):
 def main():
 
     if not "yaml" in sys.argv[-1]:
-        print('usage: {} [--no-stdout-redirect] robot.yaml'.format(sys.argv[0]))
+        print('usage: {} robot.yaml layout.yaml'.format(sys.argv[0]))
         sys.exit(1)
-    conf = yaml.full_load(open(sys.argv[-1]))
-    print("loaded: ", sys.argv[-1])
 
+    conf = yaml.full_load(open(sys.argv[-2]))
+    layout = yaml.full_load(open(sys.argv[-1]))
+    
     app = QtWidgets.QApplication(sys.argv)
     dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
     dock = 80
     dashboard = Dashboard(conf)
-    dashboard.setGeometry(0, 0, 0, screen_size.height())
+    dashboard.setGeometry(layout['dashboard']['x'], layout['dashboard']['y'], 
+                          layout['dashboard']['width'], layout['dashboard']['height'])
     if conf['window_border'] == False:
         dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     dashboard.show()
 
 
     gplots = gstreamer_plots.GstreamerPlots(conf, standalone=False) # 80 is because of the dock...
-    gplots.setGeometry(dashboard.size().width() + dock, 0, 0, screen_size.height())
+    gplots.setGeometry(layout['gstreamer_plots']['x'], layout['gstreamer_plots']['y'], 
+                       layout['gstreamer_plots']['width'], layout['gstreamer_plots']['height'])
     if conf['window_border'] == False:
         gplots.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
 
     gplots.show()
 
     video = GstreamerWindow(conf, gplots)
-    video.setGeometry(dashboard.size().width() + gplots.width() + dock , 0,
-                      screen_size.width() - dashboard.size().width() - gplots.width() - dock,
-                      screen_size.height())
+    video.setGeometry(layout['gstreamer_video']['x'], layout['gstreamer_video']['y'], 
+                            layout['gstreamer_video']['width'], layout['gstreamer_video']['height'])
     if conf['window_border'] == False:
         video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     video.show()
@@ -710,6 +717,30 @@ def main():
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
     video.setWindowTitle("Video from " + conf['gstreamer_ip'])
     gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
+
+
+
+    # window saving
+    def window_size_pos(w):
+        d = {}
+        d['width'] = w.size().width()
+        d['height'] = w.size().height()
+        d['x'] = w.pos().x()
+        d['y'] = w.pos().y()
+        return d
+
+    def save_windows():
+        file_name, _ = QFileDialog.getSaveFileName(dashboard, "Save window layout","","All Files (*);;Text Files (*.txt)")
+        if file_name:
+            with open(file_name, 'w') as file:
+                 d = {}
+                 d['dashboard'] = window_size_pos(dashboard)
+                 d['gstreamer_plots'] = window_size_pos(gplots)
+                 d['gstreamer_video'] = window_size_pos(video)
+                 yaml.dump(d, file)
+            print("SAVING WINDOWS:", file_name)
+    dashboard.button_save_windows.clicked.connect(save_windows)
+  
     app.exec_()
 
 

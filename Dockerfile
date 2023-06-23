@@ -80,7 +80,12 @@ RUN apt upgrade -y
 RUN rosdep update && cd ~/ros2_humble/ && rosdep install --from-paths src --ignore-src -y --skip-keys "fastcdr rti-connext-dds-6.0.1 urdfdom_headers"
 
 RUN cd ~/ros2_humble/ && colcon build --symlink-install
-RUN echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc
+RUN echo "source /root/ros2_humble/install/setup.bash" >> /root/.bashrc
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 
-CMD ["bash"]
+
+RUN  apt -q -qq update && apt install -y --allow-unauthenticated \
+  wireless-tools
+
+
+CMD ["cd /project && python3 dashboard.py"]
