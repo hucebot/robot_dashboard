@@ -2,6 +2,7 @@
 robot_name: Tiago
 robot_ip: 192.168.1.162
 local_interface_name: "wlp111s0"
+wifi_interface_name: "wlp111s0"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
 window_border: true
 # periods to run things
@@ -10,6 +11,7 @@ ping_timeout: 200.0 # in mseconds
 max_bad_ping: 5
 ros_control_period: 2500.0 # in ms
 ros_period: 500
+wifi_scan_period: 3
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 
