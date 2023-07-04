@@ -115,7 +115,7 @@ class RosThread(QThread):
                     else:
                         self.motor_states[n] = 0  # error
                 else:  # Tiago
-                    n = m.name.split("/")[-1]
+                    n = m.name.split(":")[-1]
                     for i in m.values:
                         if i.key == "Errors Detected":
                             if i.value == "None":
