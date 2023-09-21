@@ -319,7 +319,7 @@ def call_iwlist(interface='wlan0'):
         @return string
             properties: iwlist output
     """
-    return subprocess.check_output(['iwlist', interface, 'scanning'])
+    return subprocess.check_output(['/usr/sbin/iwlist', interface, 'scanning'])
 
 def get_interfaces(interface="wlan0"):
     """ Get parsed iwlist output
@@ -336,7 +336,7 @@ def get_interfaces(interface="wlan0"):
     return get_parsed_cells(call_iwlist(interface).decode().split('\n'))
 
 def get_current_quality(interface):
-    clist = subprocess.check_output(['iwconfig', interface]).decode().split('\n')
+    clist = subprocess.check_output(['/usr/sbin/iwconfig', interface]).decode().split('\n')
     essid = ''
     quality = ''
     for r in clist:
@@ -350,7 +350,7 @@ def get_current_quality(interface):
 
 
 def get_channels(interface):
-    clist = subprocess.check_output(['iwlist', interface, 'channel']).decode().split('\n')
+    clist = subprocess.check_output(['/usr/sbin/iwlist', interface, 'channel']).decode().split('\n')
     result = []
     for r in clist:
         if "Channel" in r and not 'Current' in r:

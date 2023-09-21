@@ -1,16 +1,21 @@
+# needs to be before QT
+from gstreamer_feed import GStreamerFeed
+
 import time
 import numpy as np
+
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5 import QtGui
 import sys
-import cv2
+#import cv2
 import numpy as np
 from collections import deque
+import yaml
+import dark_style
 
-from gstreamer_feed import GStreamerFeed
 
 
 class GstreamerThread(QThread):
@@ -66,9 +71,29 @@ class GstreamerWindow(QWidget):
         self.image_label.setMinimumSize(1, 1)
         #self.image_label.resize(self.width(), self.height())
         self.image_label.setText("<center><h1>Waiting for video stream...</h1></center>")
+        
+        
         vbox = QVBoxLayout()
+        hbox = QHBoxLayout()
+        self.setLayout(hbox)
+        self.slider_tilt = QSlider(Qt.Vertical)
+        self.slider_tilt.setMinimum(-50)
+        self.slider_tilt.setMaximum(50)
+        
+        hbox.addWidget(self.slider_tilt)
+
+
         vbox.addWidget(self.image_label)
-        self.setLayout(vbox)
+        self.slider_pan = self.slider_pan = QSlider(Qt.Horizontal)
+        self.slider_pan.setMinimum(-50)
+        self.slider_pan.setMaximum(50)
+
+        vbox.addWidget(self.slider_pan)
+        hbox.addLayout(vbox)
+
+
+        self.slider_pan.valueChanged.connect(self.dashboard.thread_ros2.set_pan)
+        self.slider_tilt.valueChanged.connect(self.dashboard.thread_ros2.set_tilt)
 
         self.thread = GstreamerThread(self.conf)
         self.thread.change_pixmap_signal.connect(self.update_image)

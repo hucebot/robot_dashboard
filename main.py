@@ -21,13 +21,17 @@ import socket
 import numpy as np
 import yaml
 import pyqtgraph as pg
-import gstreamer_plots
-from gstreamer_window import GstreamerWindow
+#import gstreamer_plots
+#from gstreamer_window import GstreamerWindow
 import ping
 import led
 import plot
 import plot_wifi
 import wifi
+
+# for having a control-c
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 # a nice green for LEDS
@@ -36,16 +40,16 @@ GREEN = '#66ff00'
 # we can start without ROS (to debug in a train, on Mac, etc.)
 USE_ROS = True
 try:
+    import rospy
     import rostopic
     import rosgraph
-    import rospy
     from controller_manager_msgs.msg import ControllerState
     from controller_manager_msgs.srv import *
     from controller_manager_msgs.utils\
         import ControllerLister, ControllerManagerLister,\
         get_rosparam_controller_names
     from diagnostic_msgs.msg import DiagnosticArray
-    from std_msgs.msg import Float64MultiArray
+  #  from std_msgs.msg import Float64MultiArray
     from talos_controller_msgs.msg import float64_array
 except Exception as e:
     print("WARNING, ROS 1 disabled: CANNOT IMPORT ROS")
@@ -189,7 +193,7 @@ class WriteStream(QObject):
 
     def __init__(self, text_edit, color, name):
         super().__init__()
-        filename = name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+        filename = 'logs/' + name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
         self.color = color
         self.log_file = open(filename, "w")
         self.text_edit = text_edit
@@ -695,28 +699,27 @@ def main():
     dashboard.show()
 
 
-    gplots = gstreamer_plots.GstreamerPlots(conf, standalone=False) # 80 is because of the dock...
-    gplots.setGeometry(layout['gstreamer_plots']['x'], layout['gstreamer_plots']['y'], 
-                       layout['gstreamer_plots']['width'], layout['gstreamer_plots']['height'])
-    if conf['window_border'] == False:
-        gplots.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    # gplots = gstreamer_plots.GstreamerPlots(conf, standalone=False) # 80 is because of the dock...
+    # gplots.setGeometry(layout['gstreamer_plots']['x'], layout['gstreamer_plots']['y'], 
+    #                    layout['gstreamer_plots']['width'], layout['gstreamer_plots']['height'])
+    # if conf['window_border'] == False:
+    #     gplots.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
 
-    gplots.show()
+    # gplots.show()
 
-    video = GstreamerWindow(conf, gplots)
-    video.setGeometry(layout['gstreamer_video']['x'], layout['gstreamer_video']['y'], 
-                            layout['gstreamer_video']['width'], layout['gstreamer_video']['height'])
-    if conf['window_border'] == False:
-        video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-    video.show()
- 
- 
+    # video = GstreamerWindow(conf, gplots)
+    # video.setGeometry(layout['gstreamer_video']['x'], layout['gstreamer_video']['y'], 
+    #                         layout['gstreamer_video']['width'], layout['gstreamer_video']['height'])
+    # if conf['window_border'] == False:
+    #     video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    # video.show()
+  
  
     dashboard.raise_()
     
     dashboard.setWindowTitle("Robot: <" + conf['robot_ip'] + ">")
-    video.setWindowTitle("Video from " + conf['gstreamer_ip'])
-    gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
+  #  video.setWindowTitle("Video from " + conf['gstreamer_ip'])
+   # gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
 
 
 
@@ -735,8 +738,8 @@ def main():
             with open(file_name, 'w') as file:
                  d = {}
                  d['dashboard'] = window_size_pos(dashboard)
-                 d['gstreamer_plots'] = window_size_pos(gplots)
-                 d['gstreamer_video'] = window_size_pos(video)
+    #             d['gstreamer_plots'] = window_size_pos(gplots)
+     #            d['gstreamer_video'] = window_size_pos(video)
                  yaml.dump(d, file)
             print("SAVING WINDOWS:", file_name)
     dashboard.button_save_windows.clicked.connect(save_windows)

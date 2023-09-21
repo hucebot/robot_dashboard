@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import *
 
 from plot import Plot
 from led import Led
-from gstreamer_window import GstreamerWindow
+#from gstreamer_window import GstreamerWindow
 import dark_style
 import ping
 import netifaces
@@ -19,6 +19,8 @@ import rclpy
 import rcl_interfaces
 from rclpy.node import Node
 from builtin_interfaces.msg import Time
+from std_msgs.msg import Float64
+
 from rcl_interfaces.srv import *
 from rcl_interfaces.msg import *
 import rclpy.parameter
@@ -28,15 +30,19 @@ class GstreamerRos2Thread(QThread):
     new_delay_data_signal =  pyqtSignal(float)
     new_bitrate_data_signal = pyqtSignal(float)
     new_packet = pyqtSignal(int)
-    rtp_host = pyqtSignal(str)
+    rtp_host = pyqtSignal(str) 
 
     
     def __init__(self, conf):
         super().__init__()
+        print('initializing ros2...')
         rclpy.init()
+        print('ROS initialized')
         self.conf = conf
 
+        print('creating node')
         self.node = Node('gstreamer_client')
+        print('ok')
 
         self.sub_clock = self.node.create_subscription(Time, self.conf['gstreamer_topic'] + '/local_time', self.clock_callback, 10)
         self.network_delay = 0
@@ -46,7 +52,12 @@ class GstreamerRos2Thread(QThread):
         self.sub_param_change = self.node.create_subscription(rcl_interfaces.msg.ParameterEvent, "/parameter_events", self.param_event_callback, 1)
         self.params_need_update = True
 
+        self.pub_pan = self.node.create_publisher(Float64, self.conf['gstreamer_topic'] + '/pan', 1)
+        self.pub_tilt = self.node.create_publisher(Float64, self.conf['gstreamer_topic'] + '/tilt', 1)
+
+        print('before ntpsync')
         self.ntp_sync()
+        print('npt sync ok')
         
         self.parameters_set = self.set_parameters() # set parameters to the ros node
 
@@ -55,7 +66,19 @@ class GstreamerRos2Thread(QThread):
         print('syncing clock (this might take a few secs...)')
         subprocess.Popen(['ntpdate', self.conf['ntp_server']])
 
+    def set_pan(self, value):
+        msg = Float64()
+        msg.data = float(value)
+        self.pub_pan.publish(msg)
+
+    def set_tilt(self, value):
+        msg = Float64()
+        msg.data = float(value)
+        self.pub_tilt.publish(msg)
+
+
     def set_parameters(self):
+        print(netifaces.ifaddresses(self.conf['local_interface_name']))
         self.my_ip = netifaces.ifaddresses(self.conf['local_interface_name'])[2][0]['addr']
         if not self.set_params.wait_for_service(timeout_sec=1.0):
              return False
@@ -123,7 +146,7 @@ class GstreamerPlots(QWidget):
 
         self.led_ros2 = Led('Clock topic:'  + self.conf['gstreamer_topic'] + '/local_time')
         self.layout.addWidget(self.led_ros2)
-      
+
         plot_names = ['fps', 'delay']
         plot_labels = ['FPS', 'Delay [ms]']
         self.plots = {}
@@ -135,10 +158,13 @@ class GstreamerPlots(QWidget):
         self.setLayout(self.layout)
 
         # ros2 thread
+        print('creating ros 2thread')
         self.thread_ros2 = GstreamerRos2Thread(self.conf)
         self.thread_ros2.start()
         self.thread_ros2.new_delay_data_signal.connect(self.plots['delay'].new_data)
         self.thread_ros2.new_packet.connect(self.led_ros2.set_state)
+        print('ros ok')
+
 
         # conf
         self.plots['delay'].setYRange(0, self.conf['plot_delay_max'])
@@ -161,12 +187,12 @@ def main():
                       screen_size.height())
     plots.show()
 
-    video = GstreamerWindow(conf, plots)
-    video.setGeometry(int(screen_size.width()/2), 0,
-                      int(screen_size.width()/2),
-                      screen_size.height())
-    #video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-    video.show()
+    # video = GstreamerWindow(conf, plots)
+    # video.setGeometry(int(screen_size.width()/2), 0,
+    #                   int(screen_size.width()/2),
+    #                   screen_size.height())
+    # #video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+    # video.show()
 
     dark_style.dark_style(app)
     app.exec_()
