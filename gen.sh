@@ -1,1 +1,0 @@
-pyuic5 dashboard.ui -o dashboard_ui.py

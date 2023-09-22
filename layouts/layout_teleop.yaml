@@ -5,11 +5,11 @@ dashboard:
   y: 0
 gstreamer_plots:
   height: 1376
-  width: 303
-  x: 4817
-  y: 27
+  width: 496
+  x: 4617
+  y: 243
 gstreamer_video:
-  height: 1282
-  width: 2181
-  x: 2634
-  y: 27
+  height: 1374
+  width: 1989
+  x: 2630
+  y: 245

@@ -16,7 +16,7 @@ import numpy as np
 import yaml
 import pyqtgraph as pg
 import gstreamer_plots
-
+import win_layout
 
 # for having a control-c
 import signal
@@ -58,27 +58,13 @@ def main():
     gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
 
 
+    def save_windows_pos(file_name):
+        file_name = win_layout.save_window_pos(video, 'gstreamer_video', file_name)
+        win_layout.save_window_pos(gplots, 'gstreamer_plots', file_name)
+        
+    gplots.button_save_layout.clicked.connect(lambda : save_windows_pos(sys.argv[-1]))
+    gplots.button_save_layout_as.clicked.connect(lambda : save_windows_pos(''))
 
-    # window saving
-    def window_size_pos(w):
-        d = {}
-        d['width'] = w.size().width()
-        d['height'] = w.size().height()
-        d['x'] = w.pos().x()
-        d['y'] = w.pos().y()
-        return d
-
-    def save_windows(): #TODO FIX THIS
-        file_name, _ = QFileDialog.getSaveFileName(dashboard, "Save window layout","","All Files (*);;Text Files (*.txt)")
-        if file_name:
-            with open(file_name, 'w') as file:
-                 d = {}
-     #            d['dashboard'] = window_size_pos(dashboard)
-                 d['gstreamer_plots'] = window_size_pos(gplots)
-                 d['gstreamer_video'] = window_size_pos(video)
-                 yaml.dump(d, file)
-            print("SAVING WINDOWS:", file_name)
-    #dashboard.button_save_windows.clicked.connect(save_windows)
   
     app.exec_()
 

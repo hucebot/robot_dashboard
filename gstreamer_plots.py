@@ -140,7 +140,12 @@ class GstreamerPlots(QWidget):
             self.button_quit = QPushButton('Quit')
             self.layout.addWidget(self.button_quit)
             self.button_quit.clicked.connect(QApplication.quit)
-
+            self.h_layout = QHBoxLayout()
+            self.button_save_layout = QPushButton("Save window pos.")
+            self.h_layout.addWidget(self.button_save_layout)
+            self.button_save_layout_as = QPushButton("as...")
+            self.h_layout.addWidget(self.button_save_layout_as)
+            self.layout.addLayout(self.h_layout)
         self.label_rtp = QLabel('<b>[port: ' + str(self.conf['rtp_port']) + ']</b>')
         self.layout.addWidget(self.label_rtp)
 
@@ -158,7 +163,7 @@ class GstreamerPlots(QWidget):
         self.setLayout(self.layout)
 
         # ros2 thread
-        print('creating ros 2thread')
+        print('creating ros2 thread...')
         self.thread_ros2 = GstreamerRos2Thread(self.conf)
         self.thread_ros2.start()
         self.thread_ros2.new_delay_data_signal.connect(self.plots['delay'].new_data)

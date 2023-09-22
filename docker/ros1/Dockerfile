@@ -46,7 +46,7 @@ RUN pip3 install numpy pyqtgraph
 
 RUN touch /root/.bashrc \   
     && echo "export ROS_PYTHON_VERSION=3" >> /root/.bashrc \
-    && echo "source /opt/ros/noetic/setub.bash"
+    && echo "source /opt/ros/noetic/setub.bash"  >> /root/.bashrc
 
 RUN cd /root && git clone https://github.com/hucebot/robot_dashboard
 
