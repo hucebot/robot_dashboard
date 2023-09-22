@@ -1,0 +1,15 @@
+dashboard:
+  height: 1403
+  width: 2560
+  x: 5120
+  y: 0
+gstreamer_plots:
+  height: 1376
+  width: 496
+  x: 4617
+  y: 243
+gstreamer_video:
+  height: 1374
+  width: 1989
+  x: 2630
+  y: 245
