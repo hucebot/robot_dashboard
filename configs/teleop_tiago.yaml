@@ -38,3 +38,6 @@ plot_upstream_max: 2
 plot_bitrate_max: 2
 plot_jitter_max: 5
 plot_delay_max: 100 # ms
+
+# wifi
+wifi_monitor_topic: '/teleop/wifimon'

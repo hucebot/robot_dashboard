@@ -62,7 +62,7 @@ class PlotWifi(pg.PlotWidget):
         self.getPlotItem().getAxis('left').setTicks([labels])
         self.essid_to_y =  { essid_list[i]:i for i in range(len(essid_list)) }
         self.setYRange(0, len(self.essid_to_y))
-
+        print("networks:", self.networks)
         pos = [(self.channel_to_x[int(n['Channel'])], self.essid_to_y[n['Name']]) for n in self.networks]
         size = [int(n['Quality']) / 3. for n in self.networks]
         brushes = [self.brushes[int(n['Quality'])] for n in self.networks]

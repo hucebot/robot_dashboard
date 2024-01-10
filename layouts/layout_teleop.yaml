@@ -13,3 +13,8 @@ gstreamer_video:
   width: 1989
   x: 2630
   y: 245
+wifi_plots:
+  height: 1376
+  width: 881
+  x: 4232
+  y: 27
