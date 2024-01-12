@@ -13,6 +13,7 @@ class PlotMulti(pg.PlotWidget):
         self.lines = {}
         self.labels = {}
         self.data = {}
+        self.highlighted = -1
         #self.disableAutoRange()
         self.setXRange(0, 50)
         #self.getPlotItem().hideAxis('bottom')
@@ -21,16 +22,25 @@ class PlotMulti(pg.PlotWidget):
         self.getPlotItem().getAxis('top').setTicks([])
         self.getPlotItem().getAxis('right').setTicks([])
         self.getPlotItem().getAxis('bottom').setTicks([])
+        #self.setBackground((10, 10, 10))
 
+    @pyqtSlot(int)
+    def select(self, v):
+        if self.highlighted != v:
+            if self.highlighted != -1:
+                self.lines[self.highlighted].setPen(pg.mkPen(width=1,color=pg.intColor(v)))
+            self.lines[v].setPen(pg.mkPen(width=6,color=pg.intColor(v)))
+            self.highlighted = v
+        
     @pyqtSlot(dict)
     def new_data(self, v):
         # first call
         if not self.lines:
             i = 0
             for k in v.keys():
-                self.lines[k] = self.plot([], [], pen=pg.mkPen(color=pg.intColor(i)))
+                self.lines[k] = self.plot([], [], pen=pg.mkPen(color=pg.intColor(k)))
                 self.data[k] = deque([], maxlen=50)
-                self.labels[k] = pg.TextItem(str(k), color=pg.intColor(i))
+                self.labels[k] = pg.TextItem(str(k), color=pg.intColor(k))
                 self.addItem(self.labels[k])
                 i += 1
         # update the plot

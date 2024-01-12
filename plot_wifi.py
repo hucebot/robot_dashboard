@@ -43,9 +43,14 @@ class PlotWifi(pg.PlotWidget):
         self.getPlotItem().getAxis('right').setTicks([])
 
 
+        
+        for i in range(len(channel_list)):
+            l = pg.InfiniteLine(pos=i, pen=pg.mkPen(color=pg.intColor(int(channel_list[i]))))
+            self.addItem(l)
+
         self.addItem(self.scatter)
         self.brushes = { i:pg.mkBrush(255 - (i / 100. * 255), (i / 100. * 255), 0, 255) for i in range(101) }
-        
+
 
     @pyqtSlot(object)
     def new_data(self, net_list):
@@ -62,7 +67,7 @@ class PlotWifi(pg.PlotWidget):
         self.getPlotItem().getAxis('left').setTicks([labels])
         self.essid_to_y =  { essid_list[i]:i for i in range(len(essid_list)) }
         self.setYRange(0, len(self.essid_to_y))
-        print("networks:", self.networks)
+        #print("networks:", self.networks)
         pos = [(self.channel_to_x[int(n['Channel'])], self.essid_to_y[n['Name']]) for n in self.networks]
         size = [int(n['Quality']) / 3. for n in self.networks]
         brushes = [self.brushes[int(n['Quality'])] for n in self.networks]

@@ -103,7 +103,17 @@ class WifiPlots(QWidget):
         self.plot_wifi.setMinimumSize(QtCore.QSize(0,400))
         self.layout_wifi.addWidget(self.plot_wifi)
 
+        # WIFI scans
+        self.thread_wifi = wifi.WifiScanThread(self.conf)
+        self.plot_wifi.setup(self.thread_wifi.channels)
+        self.thread_wifi.start()
+        self.thread_wifi.networks.connect(self.plot_wifi.new_data)
+        self.thread_wifi.essid.connect(lambda s: self.wifi_label.setText(f'<center><b>{s}</b></center>'))
+        self.thread_wifi.quality.connect(self.plot_wifi_quality.new_data)
+        self.plot_wifi_quality.setYRange(0, 100)
+        
 
+        # wifi monitor /sniffing
         plot_names = ['bs', 'packets', 'mean_qbss', 'retries', 'data_packets']
         plot_labels = ['byte/s', 'packets/s', 'mean QBSS', 'retries', 'data packets']
         self.plots = {}
@@ -111,10 +121,11 @@ class WifiPlots(QWidget):
             self.layout.addWidget(QLabel('<center><b>' + l + '</b></center>'))
             self.plots[p] = PlotMulti()
             self.layout.addWidget(self.plots[p])
+            self.thread_wifi.channel.connect(self.plots[p].select)
 
         self.setLayout(self.layout)
 
-        # ros2 thread
+        # ros2 thread for monitor
         print('creating ros2 thread...')
         self.thread_ros2 = WifiRos2Thread(self.conf)
         self.thread_ros2.bs_signal.connect(self.plots['bs'].new_data)
@@ -125,12 +136,4 @@ class WifiPlots(QWidget):
         self.thread_ros2.start()
         print('started')
 
-        # WIFI scans
-        self.thread_wifi = wifi.WifiScanThread(self.conf)
-        self.plot_wifi.setup(self.thread_wifi.channels)
-        self.thread_wifi.start()
-        self.thread_wifi.networks.connect(self.plot_wifi.new_data)
-        self.thread_wifi.essid.connect(lambda s: self.wifi_label.setText(f'<center><b>{s}</b></center>'))
-        self.thread_wifi.quality.connect(self.plot_wifi_quality.new_data)
-        self.plot_wifi_quality.setYRange(0, 100)
-        
+      

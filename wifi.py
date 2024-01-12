@@ -343,41 +343,48 @@ def get_current_quality(interface):
         if "ESSID" in r:
             essid = r.split(':')[1].replace("\"",'') 
         if 'Quality' in r:
-            print("Quality, :", r.split('='))
+           # print("Quality, :", r.split('='))
             quality = float(r.split('=')[1].split('/')[0])/70.*100.
-    print('essid, quality', essid, quality)
+    #print('essid, quality', essid, quality)
     return essid, int(quality)
 
 
 def get_channels(interface):
     clist = subprocess.check_output(['/usr/sbin/iwlist', interface, 'channel']).decode().split('\n')
     result = []
+    channel = -1
     for r in clist:
         if "Channel" in r and not 'Current' in r:
-            result += [r.split(' ')[-4]]            
-    return result
+            result += [r.split(' ')[-4]]
+        elif 'Current' in r:
+            channel = int(r.split(')')[-2].split(' ')[-1])
+    return result, channel
+
 
 
 class WifiScanThread(QThread):
     networks = pyqtSignal(object)
     quality = pyqtSignal(float)
     essid = pyqtSignal(str)
+    channel = pyqtSignal(int)
 
     def __init__(self, conf):
         super().__init__()
         self.conf = conf
-        self.channels = get_channels(self.conf['wifi_interface_name'])
-
+        self.channels, self.current_channel = get_channels(self.conf['wifi_interface_name'])
+    
     def run(self):
         print("Running wifi thread...")
         while True:
             try:
                 networks = get_interfaces(interface=self.conf['wifi_interface_name'])
+                self.channels, self.current_channel = get_channels(self.conf['wifi_interface_name'])
                 essid, quality = get_current_quality(interface=self.conf['wifi_interface_name'])
                 self.networks.emit(networks)
                 self.essid.emit(essid)
                 self.quality.emit(float(quality))
-                print('Q:', float(quality))
+                self.channel.emit(self.current_channel)
+             #  print('Q:', float(quality))
             except Exception as e:
                 print('Network scan failed:', e)
             time.sleep(self.conf['wifi_scan_period'])
