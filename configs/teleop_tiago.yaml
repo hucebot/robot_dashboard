@@ -1,6 +1,6 @@
 # general configuration
 robot_name: Tiago
-robot_ip: 192.168.1.162
+robot_ip: 192.168.50.162
 local_interface_name: "wlp69s0"
 wifi_interface_name: "wlp69s0"
 socket_timeout: 0.1 # for all sockets (ROS, etc.)
