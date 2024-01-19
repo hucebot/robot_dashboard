@@ -3,7 +3,7 @@ robot_name: Tiago
 robot_ip: 192.168.50.162
 local_interface_name: "wlp69s0"
 wifi_interface_name: "wlp69s0"
-socket_timeout: 0.1 # for all sockets (ROS, etc.)
+socket_timeout: 0.5 # for all sockets (ROS, etc.)
 window_border: true
 # periods to run things
 ping_period: 1.0 # in seconds

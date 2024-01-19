@@ -3,3 +3,8 @@ dashboard:
   width: 1633
   x: 5120
   y: 0
+wifi_plots:
+  height: 1403
+  width: 720
+  x: 6860
+  y: 29

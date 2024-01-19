@@ -35,7 +35,7 @@ class WifiRos2Thread(QThread):
     mean_qbss_signal = pyqtSignal(dict)
     retries_signal = pyqtSignal(dict)
     data_packets_signal = pyqtSignal(dict)
-    
+    wifimon_connected_signal =  pyqtSignal(int)
     
     def __init__(self, conf):
         super().__init__()
@@ -46,6 +46,7 @@ class WifiRos2Thread(QThread):
         print('subscribed')
 
     def monitor_callback(self, msg):
+        self.wifimon_connected_signal.emit(1)
         d = json.loads(msg.data)
         data = defaultdict(dict) 
         for k,v in d.items():
@@ -63,10 +64,14 @@ class WifiRos2Thread(QThread):
         
        
     def run(self):
+        k = 0
         while True: # todo simpler spin()
             rclpy.spin_once(self.node)
             time.sleep(0.1)
-         
+            if k == 10:
+                self.wifimon_connected_signal.emit(0)
+                k = 0
+            k += 1
 class WifiPlots(QWidget):
 
     def __init__(self, conf, standalone=True):
@@ -133,6 +138,7 @@ class WifiPlots(QWidget):
         self.thread_ros2.mean_qbss_signal.connect(self.plots['mean_qbss'].new_data)
         self.thread_ros2.retries_signal.connect(self.plots['retries'].new_data)
         self.thread_ros2.data_packets_signal.connect(self.plots['data_packets'].new_data)
+        self.thread_ros2.wifimon_connected_signal.connect(self.led_ros2.set_state)
         self.thread_ros2.start()
         print('started')
 
