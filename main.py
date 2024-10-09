@@ -26,7 +26,7 @@ import pyqtgraph as pg
 import ping
 import led
 import plot
-#import plot_wifi
+import plot_wifi
 import wifi
 
 # for having a control-c
@@ -97,7 +97,6 @@ class RosThread(QThread):
     def check_diagnostics(self):
         if  self.ros_master != None and self.topic_diag == None:
             print("Recreating the diagnostic subscription")
-            print("init node/ line 100")
             rospy.init_node('dashboard', anonymous=True,  disable_signals=True)
             self.topic_diag = rospy.Subscriber("/diagnostics", DiagnosticArray, self.diag_cb)
             print("Subscribed to /diagnostics")
@@ -194,8 +193,6 @@ class WriteStream(QObject):
 
     def __init__(self, text_edit, color, name):
         super().__init__()
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
         filename = 'logs/' + name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
         self.color = color
         self.log_file = open(filename, "w")
@@ -303,7 +300,6 @@ class Dashboard(QtWidgets.QMainWindow):
         if self.led_ros.state == 1 and self.topic_diag == None:
             print("Recreating the diagnostic subscription")
             rospy.init_node('dashboard', anonymous=True)
-            print("CALLED init_node (ROS1)")
             self.topic_diag = rospy.Subscriber(
                 "/diagnostics_agg", DiagnosticArray, self.diag_cb)
             print("subscribed to /diagnostic_agg")
@@ -500,7 +496,7 @@ class Dashboard(QtWidgets.QMainWindow):
         self.main_layout.addLayout(self.horizontal_layout)
 
         # columns
-        n_cols = 4
+        n_cols = 5
         self.columns = []
         for i in range(n_cols):
             c = QtWidgets.QVBoxLayout()
@@ -589,18 +585,18 @@ class Dashboard(QtWidgets.QMainWindow):
 
 
 
-        # # wifi
-        # self.layout_wifi = self.columns[4]
+        # wifi
+        self.layout_wifi = self.columns[4]
 
-        # ## wifi plot
-        # self.wifi_label = QtWidgets.QLabel('<center><b>WiFi quality</b></center>')
-        # self.layout_wifi.addWidget(self.wifi_label)
-        # self.plot_wifi_quality = plot.Plot()
-        # self.layout_wifi.addWidget(self.plot_wifi_quality)
+        ## wifi plot
+        self.wifi_label = QtWidgets.QLabel('<center><b>WiFi quality</b></center>')
+        self.layout_wifi.addWidget(self.wifi_label)
+        self.plot_wifi_quality = plot.Plot()
+        self.layout_wifi.addWidget(self.plot_wifi_quality)
 
-        # ## scanner
-        # self.plot_wifi = plot_wifi.PlotWifi()
-        # self.layout_wifi.addWidget(self.plot_wifi)
+        ## scanner
+        self.plot_wifi = plot_wifi.PlotWifi()
+        self.layout_wifi.addWidget(self.plot_wifi)
        
 
     def __init__(self, conf):
@@ -644,13 +640,13 @@ class Dashboard(QtWidgets.QMainWindow):
         self.new_data_net_sent_signal.connect(self.plot_upstream.new_data)
         
         # WIFI scans
-        # self.thread_wifi = wifi.WifiScanThread(self.conf)
-        # self.plot_wifi.setup(self.thread_wifi.channels)
-        # self.thread_wifi.start()
-        # self.thread_wifi.networks.connect(self.plot_wifi.new_data)
-        # self.thread_wifi.essid.connect(lambda s: self.wifi_label.setText(f'<center><b>{s}</b></center>'))
-        # self.thread_wifi.quality.connect(self.plot_wifi_quality.new_data)
-        # self.plot_wifi_quality.setYRange(0, 100)
+        self.thread_wifi = wifi.WifiScanThread(self.conf)
+        self.plot_wifi.setup(self.thread_wifi.channels)
+        self.thread_wifi.start()
+        self.thread_wifi.networks.connect(self.plot_wifi.new_data)
+        self.thread_wifi.essid.connect(lambda s: self.wifi_label.setText(f'<center><b>{s}</b></center>'))
+        self.thread_wifi.quality.connect(self.plot_wifi_quality.new_data)
+        self.plot_wifi_quality.setYRange(0, 100)
 
         # ros
         if USE_ROS:
