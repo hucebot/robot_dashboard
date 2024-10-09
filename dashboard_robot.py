@@ -194,6 +194,8 @@ class WriteStream(QObject):
 
     def __init__(self, text_edit, color, name):
         super().__init__()
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
         filename = 'logs/' + name + '_' +  datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".log"
         self.color = color
         self.log_file = open(filename, "w")

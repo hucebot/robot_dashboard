@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Vscode Folder
+.vscode/
+log/
+
+# Custom Layouts
+cdonoso_tiago.yaml
+cdonoso_dashboard_layout.yaml
