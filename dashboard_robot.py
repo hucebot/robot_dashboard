@@ -49,6 +49,7 @@ try:
         import ControllerLister, ControllerManagerLister,\
         get_rosparam_controller_names
     from diagnostic_msgs.msg import DiagnosticArray
+    from geometry_msgs.msg import WrenchStamped
   #  from std_msgs.msg import Float64MultiArray
     from talos_controller_msgs.msg import float64_array
 except Exception as e:
@@ -66,6 +67,8 @@ class RosThread(QThread):
     controllers = pyqtSignal(object)
     load_average =  pyqtSignal(float)
     need_reset = pyqtSignal(bool)
+    left_wrist = pyqtSignal(float)
+    right_wrist = pyqtSignal(float)
 
     def __init__(self, conf):
         super().__init__()
@@ -77,6 +80,8 @@ class RosThread(QThread):
         self.motor_states = {}
         self.robot = self.conf['robot_name']
         self.done = False
+        self.left_wrist_data = []
+        self.right_wrist_data = []
 
     def reinit(self):
         self.topic_diag = None
@@ -135,6 +140,31 @@ class RosThread(QThread):
                                 self.motor_states[n] = 1
         self.motors.emit(self.motor_states)
 
+    def check_force_and_torque(self):
+        if self.ros_master != None:
+            rospy.Subscriber("/wrist_left_ft/corrected", WrenchStamped, self.left_wrist_cb)
+            rospy.Subscriber("/wrist_right_ft/corrected", WrenchStamped, self.right_wrist_cb)
+
+    def left_wrist_cb(self, msg):
+        #TODO Do something with the data
+        module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
+        self.left_wrist_data += [float(module)]
+        self.left_wrist_force_value = float(msg.wrench.force.x)
+        if len(self.left_wrist_data) > 100:
+            m = np.mean(self.left_wrist_data)
+            self.left_wrist.emit(m)
+            self.left_wrist_data = []
+
+    def right_wrist_cb(self, msg):
+        #TODO Do something with the data
+        module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
+        self.right_wrist_data += [float(module)]
+        self.right_wrist_force_value = float(msg.wrench.force.x)
+        if len(self.right_wrist_data) > 100:
+            m = np.mean(self.right_wrist_data)
+            self.right_wrist.emit(m)
+            self.right_wrist_data = []
+
     def check_ros(self):
         #print("Checking ros...")
         os.environ["ROS_MASTER_URI"] = 'http://' + self.conf['robot_ip'] + ':11311'
@@ -185,6 +215,7 @@ class RosThread(QThread):
             self.check_ros()
             self.check_ros_control()
             self.check_diagnostics()
+            self.check_force_and_torque()
             time.sleep(self.conf['ros_period'] / 1000.0)        
 
 # The new Stream Object which replaces the default stream associated with sys.stdout/stderr
@@ -500,7 +531,7 @@ class Dashboard(QtWidgets.QMainWindow):
         self.main_layout.addLayout(self.horizontal_layout)
 
         # columns
-        n_cols = 4
+        n_cols = 5
         self.columns = []
         for i in range(n_cols):
             c = QtWidgets.QVBoxLayout()
@@ -580,6 +611,17 @@ class Dashboard(QtWidgets.QMainWindow):
         self.plot_downstream = plot.Plot()
         self.layout_network.addWidget(self.plot_downstream)
     
+        # Wrist force and torque
+        self.layout_network = self.columns[4]
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist [N]</b></center>'))
+        self.left_wrist_plot = plot.Plot()
+        self.layout_network.addWidget(self.left_wrist_plot)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist [N]</b></center>'))
+        self.right_wrist_plot = plot.Plot()
+        self.layout_network.addWidget(self.right_wrist_plot)
+
 
         # console with output
         self.text_stdout = QtWidgets.QTextEdit()
@@ -662,6 +704,9 @@ class Dashboard(QtWidgets.QMainWindow):
             self.thread_ros.motors.connect(self.update_motors_cb)
             self.thread_ros.ros_control_online.connect(self.led_controller.set_state)
             self.thread_ros.need_reset.connect(lambda x: sys.exit(2))
+
+            self.thread_ros.left_wrist.connect(self.left_wrist_plot.new_data)
+            self.thread_ros.right_wrist.connect(self.right_wrist_plot.new_data)
 
             self.thread_ros.battery.connect(self.plot_battery.new_data)
             self.plot_battery.setYRange(0, 100.01)
