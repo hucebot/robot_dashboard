@@ -67,8 +67,10 @@ class RosThread(QThread):
     controllers = pyqtSignal(object)
     load_average =  pyqtSignal(float)
     need_reset = pyqtSignal(bool)
-    left_wrist = pyqtSignal(float)
-    right_wrist = pyqtSignal(float)
+    left_wrist_force = pyqtSignal(float)
+    left_wrist_torque = pyqtSignal(float)
+    right_wrist_force = pyqtSignal(float)
+    right_wrist_torque = pyqtSignal(float)
 
     def __init__(self, conf):
         super().__init__()
@@ -80,8 +82,11 @@ class RosThread(QThread):
         self.motor_states = {}
         self.robot = self.conf['robot_name']
         self.done = False
-        self.left_wrist_data = []
-        self.right_wrist_data = []
+        self.limit_data = 100
+        self.left_wrist_force_data = []
+        self.left_wrist_torque_data = []
+        self.right_wrist_force_data = []
+        self.right_wrist_torque_data = []
 
     def reinit(self):
         self.topic_diag = None
@@ -142,28 +147,42 @@ class RosThread(QThread):
 
     def check_force_and_torque(self):
         if self.ros_master != None:
-            rospy.Subscriber("/wrist_left_ft/corrected", WrenchStamped, self.left_wrist_cb)
-            rospy.Subscriber("/wrist_right_ft/corrected", WrenchStamped, self.right_wrist_cb)
+            rospy.Subscriber(self.conf['left_wrist_topic'], WrenchStamped, self.left_wrist_cb)
+            rospy.Subscriber(self.conf['right_wrist_topic'], WrenchStamped, self.right_wrist_cb)
 
     def left_wrist_cb(self, msg):
-        #TODO Do something with the data
-        module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
-        self.left_wrist_data += [float(module)]
+        force_module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
+        torque_module = np.sqrt(msg.wrench.torque.x**2 + msg.wrench.torque.y**2 + msg.wrench.torque.z**2)
+        self.left_wrist_force_data += [float(force_module)]
+        self.left_wrist_torque_data += [float(torque_module)]
         self.left_wrist_force_value = float(msg.wrench.force.x)
-        if len(self.left_wrist_data) > 100:
-            m = np.mean(self.left_wrist_data)
-            self.left_wrist.emit(m)
-            self.left_wrist_data = []
+        self.left_wrist_torque_value = float(msg.wrench.torque.x)
+        if len(self.left_wrist_force_data) > self.limit_data:
+            m = np.mean(self.left_wrist_force_data)
+            self.left_wrist_force.emit(m)
+            self.left_wrist_force_data = []
+
+        if len(self.left_wrist_torque_data) > self.limit_data:
+            m = np.mean(self.left_wrist_torque_data)
+            self.left_wrist_torque.emit(m)
+            self.left_wrist_torque_data = []
 
     def right_wrist_cb(self, msg):
-        #TODO Do something with the data
-        module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
-        self.right_wrist_data += [float(module)]
+        force_module = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
+        torque_module = np.sqrt(msg.wrench.torque.x**2 + msg.wrench.torque.y**2 + msg.wrench.torque.z**2)
+        self.right_wrist_force_data += [float(force_module)]
+        self.right_wrist_torque_data += [float(torque_module)]
         self.right_wrist_force_value = float(msg.wrench.force.x)
-        if len(self.right_wrist_data) > 100:
-            m = np.mean(self.right_wrist_data)
-            self.right_wrist.emit(m)
-            self.right_wrist_data = []
+        self.right_wrist_torque_value = float(msg.wrench.torque.x)
+        if len(self.right_wrist_force_data) > self.limit_data:
+            m = np.mean(self.right_wrist_force_data)
+            self.right_wrist_force.emit(m)
+            self.right_wrist_force_data = []
+
+        if len(self.right_wrist_torque_data) > self.limit_data:
+            m = np.mean(self.right_wrist_torque_data)
+            self.right_wrist_torque.emit(m)
+            self.right_wrist_torque_data = []
 
     def check_ros(self):
         #print("Checking ros...")
@@ -614,14 +633,21 @@ class Dashboard(QtWidgets.QMainWindow):
         # Wrist force and torque
         self.layout_network = self.columns[4]
 
-        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist [N]</b></center>'))
-        self.left_wrist_plot = plot.Plot()
-        self.layout_network.addWidget(self.left_wrist_plot)
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist - Force [N]</b></center>'))
+        self.left_wrist_force_plot = plot.Plot()
+        self.layout_network.addWidget(self.left_wrist_force_plot)
 
-        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist [N]</b></center>'))
-        self.right_wrist_plot = plot.Plot()
-        self.layout_network.addWidget(self.right_wrist_plot)
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist - Torque [Nm]</b></center>'))
+        self.left_wrist_torque_plot = plot.Plot()
+        self.layout_network.addWidget(self.left_wrist_torque_plot)
 
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist - Force [N]</b></center>'))
+        self.right_wrist_force_plot = plot.Plot()
+        self.layout_network.addWidget(self.right_wrist_force_plot)
+
+        self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist - Torque [Nm]</b></center>'))
+        self.right_wrist_torque_plot = plot.Plot()
+        self.layout_network.addWidget(self.right_wrist_torque_plot)
 
         # console with output
         self.text_stdout = QtWidgets.QTextEdit()
@@ -705,8 +731,14 @@ class Dashboard(QtWidgets.QMainWindow):
             self.thread_ros.ros_control_online.connect(self.led_controller.set_state)
             self.thread_ros.need_reset.connect(lambda x: sys.exit(2))
 
-            self.thread_ros.left_wrist.connect(self.left_wrist_plot.new_data)
-            self.thread_ros.right_wrist.connect(self.right_wrist_plot.new_data)
+            self.thread_ros.left_wrist_force.connect(self.left_wrist_force_plot.new_data)
+            self.left_wrist_force_plot.setYRange(-80, 80)
+            self.thread_ros.left_wrist_torque.connect(self.left_wrist_torque_plot.new_data)
+            self.left_wrist_torque_plot.setYRange(-20, 20)
+            self.thread_ros.right_wrist_force.connect(self.right_wrist_force_plot.new_data)
+            self.right_wrist_force_plot.setYRange(-80, 80)
+            self.thread_ros.right_wrist_torque.connect(self.right_wrist_torque_plot.new_data)
+            self.right_wrist_torque_plot.setYRange(-20, 20)
 
             self.thread_ros.battery.connect(self.plot_battery.new_data)
             self.plot_battery.setYRange(0, 100.01)
