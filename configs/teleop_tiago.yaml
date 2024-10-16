@@ -12,6 +12,7 @@ max_bad_ping: 5
 ros_control_period: 2500.0 # in ms
 ros_period: 500
 wifi_scan_period: 2
+
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 
@@ -26,7 +27,6 @@ gst_verbose: true
 use_rtcp: false
 rtp_host: "localhost" # deprecated
 ntp_server: 'time.apple.com'
-use_rtcp: false # deprecated
 
 # plot configurations
 plot_videostream_period: 10
@@ -41,3 +41,7 @@ plot_delay_max: 100 # ms
 
 # wifi
 wifi_monitor_topic: '/teleop/wifimon'
+
+# wrist topics
+left_wrist_topic: '/wrist_left_ft/corrected'
+right_wrist_topic: '/wrist_right_ft/corrected'
