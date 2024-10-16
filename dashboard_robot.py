@@ -696,6 +696,7 @@ class Dashboard(QtWidgets.QMainWindow):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
+        self.thread_ping.ok.connect(self.plot_widget_ping.set_state)
         self.thread_ping.need_reset_signal.connect(sys.exit)
        
         # ranges
