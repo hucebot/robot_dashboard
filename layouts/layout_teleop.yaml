@@ -3,18 +3,35 @@ dashboard:
   width: 1633
   x: 5120
   y: 0
+
 gstreamer_plots:
   height: 1403
   width: 293
   x: 7287
   y: 0
+
 gstreamer_video:
   height: 1403
   width: 2103
   x: 5200
   y: 0
+
 wifi_plots:
   height: 1403
   width: 720
   x: 6860
   y: 29
+
+left_gripper_alarm:
+  font_size: 20
+  x: 0
+  y: 0
+  label_x: 0
+  label_y: 0
+
+right_gripper_alarm:
+  font_size: 40
+  x: 6860
+  y: 0
+  label_x: 0
+  label_y: 0

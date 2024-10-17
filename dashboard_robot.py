@@ -33,6 +33,9 @@ import wifi
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+# For the alerts
+from dashboard_alert import AlertApp
+
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -771,6 +774,11 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
+
+    left_gripper_alert = AlertApp(conf, layout, "/left_gripper_alert", "left")
+    right_gripper_alert = AlertApp(conf, layout, "/right_gripper_alert", "right")
+    left_gripper_alert.show()
+    right_gripper_alert.show()
 
     dock = 80
     dashboard = Dashboard(conf)
