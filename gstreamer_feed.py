@@ -48,7 +48,7 @@ class GStreamerFeed:
             ! rtph264depay ! h264parse ! decodebin ! queue ! videoconvert ! video/x-raw,format=RGB \
             ! queue ! appsink sync=false max-buffers=0 drop=true name=sink emit-signals=true"
             
-        self.print("Gstreamer pipeline:", self.pipeline_string.replace("!","\n!"))
+        #self.print("Gstreamer pipeline:", self.pipeline_string.replace("!","\n!"))
 
         try:
             self.pipeline = Gst.parse_launch(self.pipeline_string)
@@ -63,15 +63,15 @@ class GStreamerFeed:
         if self.conf['use_rtcp']:
             self.rtpbin = self.pipeline.get_by_name('rtpbin')
             assert(self.rtpbin)
-        self.print("Gstreamer pipeline elements (not in order):")
+        #self.print("Gstreamer pipeline elements (not in order):")
         for element in self.pipeline.iterate_elements():
             name = element.get_name()
-            self.print("\t [{}]".format(name))
+            #self.print("\t [{}]".format(name))
         if self.conf['use_rtcp']:
-            self.print("Gstreamer rtpbin elements:")
+            #self.print("Gstreamer rtpbin elements:")
             for element in self.rtpbin.iterate_elements():
                 name = element.get_name()
-                self.print("\t [{}]".format(name))
+                #self.print("\t [{}]".format(name))
             self.session = self.rtpbin.emit('get-internal-session', 0)
             self.session.connect("on-ssrc-active", self.__on_ssrc)
         
