@@ -775,8 +775,8 @@ def main():
     dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
 
-    left_gripper_alert = AlertApp(conf, layout, "/left_gripper_alert", "left")
-    right_gripper_alert = AlertApp(conf, layout, "/right_gripper_alert", "right")
+    left_gripper_alert = AlertApp(conf, layout, conf['left_wrist_topic'], "left")
+    right_gripper_alert = AlertApp(conf, layout, conf['right_wrist_topic'], "right")
     left_gripper_alert.show()
     right_gripper_alert.show()
 

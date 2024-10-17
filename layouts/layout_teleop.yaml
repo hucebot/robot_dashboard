@@ -23,15 +23,15 @@ wifi_plots:
   y: 29
 
 left_gripper_alarm:
-  font_size: 20
-  x: 0
-  y: 0
+  font_size: 40
   label_x: 0
   label_y: 0
+  x: 2630
+  y: 0
 
 right_gripper_alarm:
   font_size: 40
-  x: 6860
-  y: 0
   label_x: 0
   label_y: 0
+  x: 4300
+  y: 0
