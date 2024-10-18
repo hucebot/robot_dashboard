@@ -48,7 +48,6 @@ RUN python3 -m pip install -U colcon-common-extensions vcstool
 RUN apt update && apt-get install -y libignition-math6-dev
 
 
-RUN touch /root/.bashrc \   
-    && echo "source /opt/ros/humble/setup.bash"  >> /root/.bashrc
+RUN echo "source /opt/ros/humble/setup.bash"  >> /root/.bashrc
 
 CMD ["/bin/bash"]

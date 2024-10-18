@@ -1,3 +1,5 @@
+xhost +local:docker
+
 docker run  --privileged -v/dev/shm:/dev/shm  \
     -v /tmp/.X11-unix/:/tmp/.X11-unix \
     --env HOME=/root \

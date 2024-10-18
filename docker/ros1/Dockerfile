@@ -48,7 +48,11 @@ RUN touch /root/.bashrc \
     && echo "export ROS_PYTHON_VERSION=3" >> /root/.bashrc \
     && echo "source /opt/ros/noetic/setub.bash"  >> /root/.bashrc
 
-RUN cd /root && git clone https://github.com/hucebot/robot_dashboard
+RUN mkdir /root/ros_ws
+
+#RUN cd /root && git clone https://github.com/hucebot/robot_dashboard
 
 
-CMD ["cd /project && python3 dashboard.py"]
+RUN echo "export ROS_MASTER_URI=http://192.168.50.162:11311" >> ~/.bashrc 
+RUN echo "export ROS_IP=192.168.50.77" >> ~/.bashrc
+#CMD ["cd /project && python3 dashboard.py"]
