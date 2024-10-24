@@ -23,12 +23,13 @@ class GstreamerThread(QThread):
     ready = pyqtSignal(int)
     
 
-    def __init__(self, conf):
+    def __init__(self, conf, camera_key):
         super().__init__()
         self.conf = conf
+        self.camera_key = camera_key
 
     def run(self):
-        self.feed = GStreamerFeed(self.conf)
+        self.feed = GStreamerFeed(self.conf, self.camera_key)
         self.feed.start()
         self.__run = True
         self.ready.emit(2)
@@ -60,11 +61,12 @@ class GstreamerWindow(QWidget):
     new_jitter_data_signal =  pyqtSignal(float)
     new_delay_data_signal =  pyqtSignal(float)
 
-    def __init__(self, conf, dashboard):
+    def __init__(self, conf, dashboard, camera):
         super().__init__()
         self.conf = conf
-        self.setWindowTitle("Camera")
+        self.setWindowTitle("Camera " + camera)
         self.dashboard = dashboard
+        self.camera_key = camera
 
         # create the label that holds the image
         self.image_label = QLabel(self)
@@ -95,7 +97,7 @@ class GstreamerWindow(QWidget):
         self.slider_pan.valueChanged.connect(self.dashboard.thread_ros2.set_pan)
         self.slider_tilt.valueChanged.connect(self.dashboard.thread_ros2.set_tilt)
 
-        self.thread = GstreamerThread(self.conf)
+        self.thread = GstreamerThread(self.conf, self.camera_key)
         self.thread.change_pixmap_signal.connect(self.update_image)
         self.thread.start()
 

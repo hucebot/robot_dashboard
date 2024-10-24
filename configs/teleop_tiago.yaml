@@ -1,8 +1,8 @@
 # general configuration
 robot_name: Tiago
 robot_ip: 192.168.50.162
-local_interface_name: "wlp69s0"
-wifi_interface_name: "wlp69s0"
+local_interface_name: "wlp2s0f0"
+wifi_interface_name: "wlp2s0f0"
 socket_timeout: 0.5 # for all sockets (ROS, etc.)
 window_border: true
 # periods to run things
@@ -12,14 +12,16 @@ max_bad_ping: 5
 ros_control_period: 2500.0 # in ms
 ros_period: 500
 wifi_scan_period: 2
-
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
+
+# force limits
+limit_force: 71.0
+limit_torque: 12.0
 
 # gstreamer
 gstreamer_topic: '/gstreamer_service'
 gstreamer_ip: 192.168.0.11
-rtp_port: 5000 # streamer robot->station (video)
 rtp_timeout: 2.0 # in seconds
 rtcp_port: 5001 # streamer robot->station (control)
 gst_clock: true # should we display the clock on the video
@@ -27,6 +29,20 @@ gst_verbose: true
 use_rtcp: false
 rtp_host: "localhost" # deprecated
 ntp_server: 'time.apple.com'
+
+gstreamer:
+  camera_1:
+    side: 'left'
+    port: 5000
+    name: 'left gripper'
+  camera_2:
+    side: 'center'
+    port: 5001
+    name: 'head'
+  camera_3:
+    side: 'right'
+    port: 5002
+    name: 'right gripper'
 
 # plot configurations
 plot_videostream_period: 10

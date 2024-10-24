@@ -146,8 +146,6 @@ class GstreamerPlots(QWidget):
             self.button_save_layout_as = QPushButton("as...")
             self.h_layout.addWidget(self.button_save_layout_as)
             self.layout.addLayout(self.h_layout)
-        self.label_rtp = QLabel('<b>[port: ' + str(self.conf['rtp_port']) + ']</b>')
-        self.layout.addWidget(self.label_rtp)
 
         self.led_ros2 = Led('Clock topic:'  + self.conf['gstreamer_topic'] + '/local_time')
         self.layout.addWidget(self.led_ros2)

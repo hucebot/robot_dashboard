@@ -133,5 +133,5 @@ dmypy.json
 log/
 
 # Custom Layouts
-cdonoso_tiago.yaml
-cdonoso_dashboard_layout.yaml
+cdonoso_config.yaml
+cdonoso_layout.yaml

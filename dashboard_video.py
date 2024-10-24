@@ -46,15 +46,24 @@ def main():
 
     gplots.show()
 
-    video = GstreamerWindow(conf, gplots)
-    video.setGeometry(layout['gstreamer_video']['x'], layout['gstreamer_video']['y'], 
-                            layout['gstreamer_video']['width'], layout['gstreamer_video']['height'])
-    if conf['window_border'] == False:
-        video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-    video.show()
+    list_video = []
+    for camera in conf['gstreamer']:
+        port = conf['gstreamer'][camera]['port']
+        name = conf['gstreamer'][camera]['name']
+        layout_x = layout['gstreamer_video'][camera]['x']
+        layout_y = layout['gstreamer_video'][camera]['y']
+        layout_width = layout['gstreamer_video'][camera]['width']
+        layout_height = layout['gstreamer_video'][camera]['height']
+        video = GstreamerWindow(conf, gplots, camera)
+        video.setGeometry(layout_x, layout_y, layout_width, layout_height)
+        if conf['window_border'] == False:
+            video.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        video.setWindowTitle("Video from " + conf['gstreamer_ip'] + ' ' + name)
+        list_video.append(video)
+
+    for video in list_video:
+        video.show()
   
- 
-    video.setWindowTitle("Video from " + conf['gstreamer_ip'])
     gplots.setWindowTitle("Gstreamer from "+ conf['gstreamer_ip'])
 
 
