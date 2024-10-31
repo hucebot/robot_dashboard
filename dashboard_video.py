@@ -50,10 +50,10 @@ def main():
     for camera in conf['gstreamer']:
         port = conf['gstreamer'][camera]['port']
         name = conf['gstreamer'][camera]['name']
-        layout_x = layout['gstreamer_video'][camera]['x']
-        layout_y = layout['gstreamer_video'][camera]['y']
-        layout_width = layout['gstreamer_video'][camera]['width']
-        layout_height = layout['gstreamer_video'][camera]['height']
+        layout_x = layout[camera]['x']
+        layout_y = layout[camera]['y']
+        layout_width = layout[camera]['width']
+        layout_height = layout[camera]['height']
         video = GstreamerWindow(conf, gplots, camera)
         video.setGeometry(layout_x, layout_y, layout_width, layout_height)
         if conf['window_border'] == False:
@@ -68,7 +68,8 @@ def main():
 
 
     def save_windows_pos(file_name):
-        file_name = win_layout.save_window_pos(video, 'gstreamer_video', file_name)
+        for camera in range(len(conf['gstreamer'])):
+            file_name = win_layout.save_window_pos(list_video[camera], 'camera_'+str(camera + 1), file_name)
         win_layout.save_window_pos(gplots, 'gstreamer_plots', file_name)
         
     gplots.button_save_layout.clicked.connect(lambda : save_windows_pos(sys.argv[-1]))
