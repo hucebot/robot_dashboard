@@ -219,8 +219,8 @@ def main():
 
 
     dashboard = DashboardIOT(conf, conf_iot)
-    dashboard.setGeometry(layout['dashboard']['x'], layout['dashboard']['y'], 
-                          layout['dashboard']['width'], layout['dashboard']['height'])
+    dashboard.setGeometry(layout['dashboard_iot']['x'], layout['dashboard_iot']['y'], 
+                          layout['dashboard_iot']['width'], layout['dashboard_iot']['height'])
     if conf['window_border'] == False:
         dashboard.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
     
@@ -241,10 +241,12 @@ def main():
     def save_windows():
         file_name, _ = QFileDialog.getSaveFileName(dashboard, "Save window layout","","All Files (*);;Text Files (*.txt)")
         if file_name:
+            with open(file_name, 'r') as file:
+                d = yaml.safe_load(file) or {}
+                d['dashboard_iot'] = window_size_pos(dashboard)
             with open(file_name, 'w') as file:
-                 d = {}
-                 d['dashboard_iot'] = window_size_pos(dashboard)
-                 yaml.dump(d, file)
+                yaml.dump(d, file)
+
             print("SAVING WINDOWS:", file_name)
     dashboard.button_save_windows.clicked.connect(save_windows)
   
