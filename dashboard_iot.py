@@ -37,6 +37,7 @@ class Thing():
         self.conf_iot = conf_iot
         self.widgets = []
         self.ros2_node = ros2_node
+        self.last_msg = -1
 
         node = topic.split('/')[1].replace('/','')
         if node in self.conf_iot.keys():
@@ -53,6 +54,16 @@ class Thing():
         else: # simple led if we do not know it
             # should we filter for eurobin_iot?
             self.widgets = [led.Led(topic)]
+
+        self.timer_up = QtCore.QTimer()
+        self.timer_up.timeout.connect(self.update_up)
+        self.timer_up.start(1000)
+
+
+    def update_up(self):
+        ts = datetime.datetime.today().timestamp()
+        if ts - self.last_msg > self.conf_iot['timeout']:
+            self.widgets[0].set_state(0)
 
     def make_tof(self, topic):
         self.subscriber = self.ros2_node.create_subscription(Int16MultiArray, topic, self.listener_tof, 10)
@@ -74,7 +85,7 @@ class Thing():
         return [item_list_w]
     
     def listener_rfid(self, msg):
-        print(msg)
+        self.last_msg = datetime.datetime.today().timestamp()
         if len(self.widgets) != 0: # maybe not created yet
             self.widgets[0].set_state(1)
         ts = datetime.datetime.today().timestamp()     
@@ -88,6 +99,7 @@ class Thing():
         self.widgets[1].setText(s)
 
     def listener_tof(self, msg):
+        self.last_msg = datetime.datetime.today().timestamp()    
         if len(self.widgets) != 0: # maybe not created yet
             self.widgets[0].set_state(1)
         self.widgets[1].new_data(msg.data[0])
@@ -97,6 +109,7 @@ class Thing():
             self.widgets[1].set_state(0)
     
     def listener_key(self, msg):
+        self.last_msg = datetime.datetime.today().timestamp()
         if len(self.widgets) != 0: # maybe not created yet
             self.widgets[0].set_state(1)
         self.widgets[1].new_data(msg.data)
