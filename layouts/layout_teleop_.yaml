@@ -3,3 +3,8 @@ dashboard:
   width: 2490
   x: 2630
   y: 27
+dashboard_iot:
+  height: 1403
+  width: 2560
+  x: 2560
+  y: 0
