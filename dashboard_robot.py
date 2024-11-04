@@ -33,6 +33,9 @@ import wifi
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+# For the alerts
+from dashboard_alert import AlertApp
+
 
 # a nice green for LEDS
 GREEN = '#66ff00'
@@ -541,7 +544,7 @@ class Dashboard(QtWidgets.QMainWindow):
                                 self.motors[n] = 0
 
 
-    def setup_ui(self):
+    def setup_ui(self, conf):
         # the two main layouts
         self.main_layout =  QtWidgets.QVBoxLayout()
         self.setCentralWidget(QtWidgets.QWidget())
@@ -634,19 +637,19 @@ class Dashboard(QtWidgets.QMainWindow):
         self.layout_network = self.columns[4]
 
         self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist - Force [N]</b></center>'))
-        self.left_wrist_force_plot = plot.Plot()
+        self.left_wrist_force_plot = plot.Plot(limit_value=conf['limit_force'])
         self.layout_network.addWidget(self.left_wrist_force_plot)
 
         self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Left Wrist - Torque [Nm]</b></center>'))
-        self.left_wrist_torque_plot = plot.Plot()
+        self.left_wrist_torque_plot = plot.Plot(limit_value=conf['limit_torque'])
         self.layout_network.addWidget(self.left_wrist_torque_plot)
 
         self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist - Force [N]</b></center>'))
-        self.right_wrist_force_plot = plot.Plot()
+        self.right_wrist_force_plot = plot.Plot(limit_value=conf['limit_force'])
         self.layout_network.addWidget(self.right_wrist_force_plot)
 
         self.layout_network.addWidget(QtWidgets.QLabel('<center><b> Right Wrist - Torque [Nm]</b></center>'))
-        self.right_wrist_torque_plot = plot.Plot()
+        self.right_wrist_torque_plot = plot.Plot(limit_value=conf['limit_torque'])
         self.layout_network.addWidget(self.right_wrist_torque_plot)
 
         # console with output
@@ -673,7 +676,7 @@ class Dashboard(QtWidgets.QMainWindow):
 
     def __init__(self, conf):
         super(self.__class__, self).__init__()
-        self.setup_ui()
+        self.setup_ui(conf)
         self.conf = conf
 
         # connect stdout & stderr
@@ -696,6 +699,7 @@ class Dashboard(QtWidgets.QMainWindow):
         self.thread_ping.start()
         self.thread_ping.new_data.connect(self.plot_widget_ping.new_data)
         self.thread_ping.ok.connect(self.led_robot.set_state)
+        self.thread_ping.ok.connect(self.plot_widget_ping.set_state)
         self.thread_ping.need_reset_signal.connect(sys.exit)
        
         # ranges
@@ -770,6 +774,11 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     dark_style.dark_style(app)
     screen_size = QDesktopWidget().screenGeometry()
+
+    left_gripper_alert = AlertApp(conf, layout, conf['left_wrist_topic'], "left")
+    right_gripper_alert = AlertApp(conf, layout, conf['right_wrist_topic'], "right")
+    left_gripper_alert.show()
+    right_gripper_alert.show()
 
     dock = 80
     dashboard = Dashboard(conf)

@@ -12,6 +12,11 @@ max_bad_ping: 5
 ros_control_period: 2500.0 # in ms
 ros_period: 500
 wifi_scan_period: 2
+
+# force limits
+limit_force: 75.0
+limit_torque: 18.0
+
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 

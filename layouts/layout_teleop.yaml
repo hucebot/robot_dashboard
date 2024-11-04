@@ -18,6 +18,15 @@ dashboard:
   width: 2560
   x: 2560
   y: 1440
+  width: 1633
+  x: 5120
+  y: 0
+dashboard_iot:
+  height: 1403
+  width: 2560
+  x: 2560
+  y: 0
+
 gstreamer_plots:
   height: 1043
   width: 365
@@ -39,6 +48,22 @@ gstreamer_video:
     width: 800
     x: 1100
     y: 2100
+  height: 1403
+  width: 2103
+  x: 5200
+  y: 0
+left_gripper_alarm:
+  font_size: 40
+  label_x: 0
+  label_y: 0
+  x: 2630
+  y: 0
+right_gripper_alarm:
+  font_size: 40
+  label_x: 0
+  label_y: 0
+  x: 4300
+  y: 0
 wifi_plots:
   height: 1403
   width: 720
