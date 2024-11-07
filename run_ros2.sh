@@ -1,3 +1,5 @@
+xhost +local:docker
+
 set -x
 docker run  --privileged \
     -v /dev/shm:/dev/shm \

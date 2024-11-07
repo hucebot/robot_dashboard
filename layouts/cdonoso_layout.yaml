@@ -1,0 +1,30 @@
+camera_1:
+  height: 695
+  width: 1330
+  x: 2560
+  y: 708
+camera_2:
+  height: 683
+  width: 2553
+  x: 2560
+  y: 0
+camera_3:
+  height: 701
+  width: 1231
+  x: 3889
+  y: 715
+dashboard:
+  height: 1403
+  width: 1633
+  x: 5120
+  y: 0
+gstreamer_plots:
+  height: 1043
+  width: 365
+  x: 0
+  y: 360
+wifi_plots:
+  height: 1403
+  width: 720
+  x: 6860
+  y: 29

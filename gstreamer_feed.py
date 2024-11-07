@@ -8,8 +8,9 @@ import time
 import os
 
 class GStreamerFeed:    
-    def __init__(self, conf):
+    def __init__(self, conf, camera_key):
         self.verbose = conf['gst_verbose']
+        self.camera_key = camera_key
         Gst.init(None)
         self.conf = conf
         self.init()
@@ -27,7 +28,7 @@ class GStreamerFeed:
             self.print("GST_PLUGIN_PATH:", os.environ['GST_PLUGIN_PATH'])
         except:
             self.print("GST_PLUGIN_PATH not set")
-        rtp_port = self.conf["rtp_port"]
+        rtp_port = self.conf['gstreamer'][self.camera_key]["port"]
         rtcp_port = self.conf["rtcp_port"]
         timeout = int(self.conf["rtp_timeout"] * 1e9) # convert from s to nanoseconds
         clock = "! clockoverlay valignment=bottom " if self.conf["gst_clock"] else ""

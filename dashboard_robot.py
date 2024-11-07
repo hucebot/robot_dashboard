@@ -384,8 +384,8 @@ class Dashboard(QtWidgets.QMainWindow):
             self.controllers_layout.removeWidget(self.led_controllers[k])
             self.led_controllers[k].deleteLater()
         self.led_controllers = {}
-        for k in self.led_topics:
-            self.led_color(self.led_topics[k], 'red')
+        #for k in self.led_topics:
+        #    self.led_color(self.led_topics[k], 'red')
         self.label_ros_uri.setText("[" + os.environ["ROS_MASTER_URI"] + "]")
 
 
@@ -420,7 +420,7 @@ class Dashboard(QtWidgets.QMainWindow):
 
     def update_ros_control(self):
         # always check ROS (again)
-        self.update_ros_topics()
+        #self.update_ros_topics()
         if self.led_ros.state == 1:
             try:
                 if self.controller_lister == None:
@@ -599,13 +599,13 @@ class Dashboard(QtWidgets.QMainWindow):
         self.layout_motors.addItem(spacer)
 
         # watch topic list
-        self.layout_topics = self.columns[2]
-        self.label_topics = QtWidgets.QLabel()
-        self.layout_topics.addWidget(self.label_topics)
-        self.label_topics.setText('<center><b>topics</b></center>')
-        self.layout_topics.addWidget(self.label_topics)
-        spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.layout_topics.addItem(spacer)
+        #self.layout_topics = self.columns[2]
+        #self.label_topics = QtWidgets.QLabel()
+        #self.layout_topics.addWidget(self.label_topics)
+        #self.label_topics.setText('<center><b>topics</b></center>')
+        #self.layout_topics.addWidget(self.label_topics)
+        #spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        #self.layout_topics.addItem(spacer)
 
         # robot plots
         self.layout_network = self.columns[3]
@@ -751,12 +751,12 @@ class Dashboard(QtWidgets.QMainWindow):
             self.plot_cpu.setYRange(0, 10)            
 
             # topic list            
-            self.topic_list = self.conf['topics']
-            self.led_topics = {}
-            for k in self.topic_list:
-                self.led_topics[k] = led.Led(k)
-                self.led_topics[k].setObjectName(k)
-                self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
+            #self.topic_list = self.conf['topics']
+            #self.led_topics = {}
+            #for k in self.topic_list:
+            #    self.led_topics[k] = led.Led(k)
+            #    self.led_topics[k].setObjectName(k)
+            #    self.layout_topics.insertWidget(len(self.layout_topics) - 1, self.led_topics[k])
 
             self.led_controllers = {}
            
