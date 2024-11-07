@@ -34,17 +34,19 @@ RUN  apt -q -qq update && apt install -y --allow-unauthenticated \
 
 # switch to python3
 RUN apt install python-is-python3
-
 RUN pip3 install numpy
-
 RUN pip3 install pyqtgraph
-
 RUN cd /root && git clone https://github.com/hucebot/robot_dashboard
 
+### 6d mouse
+RUN pip3 install pyspacemouse
+RUN pip3 install git+https://github.com/bglopez/python-easyhid.git
+RUN pip3 install hidapi
+RUN pip3 install scipy
+RUN apt-get -yy install libhidapi-dev
 
 ### ROS 2
 RUN python3 -m pip install -U colcon-common-extensions vcstool
-
 RUN apt update && apt-get install -y libignition-math6-dev
 
 
