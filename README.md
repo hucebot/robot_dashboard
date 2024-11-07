@@ -17,23 +17,33 @@ Dashboard interface for monitoring the robots of the team.
 The easiest way to get started is to use the provided Docker image. You can find the Dockerfile in the `docker` folder for ROS and ROS2.
 
 To build the ROS image, run the following command in the ros1 folder:
-```docker build -t dashboard_ros1 .```
+```bash
+docker build -t dashboard_ros1 .
+```
 
 To build the ROS2 image, run the following command in the ros2 folder:
-```docker build -t dashboard_ros2 .```
+```bash
+docker build -t dashboard_ros2 .
+```
 
 # Usage
  Once you have both images built, you can run the following command to start the dashboard for ROS1:
 
-```sh run_ros1.sh python3 <python_file> configs/<custom_config_file> layouts/<custom_layout_file>.yaml```
+```bash
+sh run_ros1.sh python3 <python_file> configs/<custom_config_file> layouts/<custom_layout_file>.yaml
+```
 
 To start the dashboard for ROS2, run the following command:
 
-```sh run_ros2.sh python3 <python_file> configs/<custom_config_file> layouts/<custom_layout_file>.yaml```
+```bash
+sh run_ros2.sh python3 <python_file> configs/<custom_config_file> layouts/<custom_layout_file>.yaml
+```
 
 To start the insta360 camera controller, run the following command:
 
-```sh run_ros2.sh python3 insta360_controller.py``
+```bash
+sh run_ros2.sh python3 insta360_controller.py
+```
 
 ## Python Files
 - `dashboard_robot.py`: Dashboard for monitoring the robot's status. **Only working for ROS1.**
