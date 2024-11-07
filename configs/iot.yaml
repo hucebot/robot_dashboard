@@ -1,0 +1,14 @@
+eurobin_iot_13: 
+    name: "Dishwasher objects"
+
+eurobin_iot_23:
+  name: "Door opening"
+
+eurobin_iot_20:
+  name: "Door bell"
+
+timeout: 2.0
+
+rfid:
+  timeout: 2.0
+  e28068940000502fbeb55ca6: 'bottle'
