@@ -15,8 +15,9 @@ class Insta360Controller(Node):
         
         self.pan_camera = 0.0
         self.tilt_camera = 0.0
+        self.dead_zone = 0.2
 
-        self.step_size = 0.5
+        self.step_size = 0.8
 
         try:
             self.spacemouse = pyspacemouse.open()
@@ -36,20 +37,23 @@ class Insta360Controller(Node):
             x_mouse = state.roll
             y_mouse = state.pitch
 
-            self.pan_camera += self.step_size * x_mouse
-            self.tilt_camera += self.step_size * y_mouse
+            if abs(x_mouse) > self.dead_zone or abs(y_mouse) > self.dead_zone:
+                self.pan_camera += self.step_size * x_mouse
+                self.tilt_camera += self.step_size * y_mouse
 
+                self.pan_camera = max(min(self.pan_camera, 50.0), -50.0) 
+                self.tilt_camera = max(min(self.tilt_camera, 50.0), -50.0)
 
-            self.pan_camera = max(min(self.pan_camera, 50.0), -50.0) 
-            self.tilt_camera = max(min(self.tilt_camera, 50.0), -50.0)
+                pan_msg = Float64()
+                pan_msg.data = self.pan_camera
+                self.pan_publisher.publish(pan_msg)
 
-            pan_msg = Float64()
-            pan_msg.data = self.pan_camera
-            self.pan_publisher.publish(pan_msg)
+                tilt_msg = Float64()
+                tilt_msg.data = self.tilt_camera
 
-            tilt_msg = Float64()
-            tilt_msg.data = self.tilt_camera
-            self.tilt_publisher.publish(tilt_msg)
+                self.get_logger().info(f'Pan: {self.pan_camera}, Tilt: {self.tilt_camera}')
+                self.tilt_publisher.publish(tilt_msg)
+                self.pan_publisher.publish(pan_msg)
 
 def main(args=None):
     rclpy.init(args=args)
