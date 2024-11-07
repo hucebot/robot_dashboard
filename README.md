@@ -31,10 +31,15 @@ To start the dashboard for ROS2, run the following command:
 
 ```sh run_ros2.sh python3 <python_file> configs/<custom_config_file> layouts/<custom_layout_file>.yaml```
 
+To start the insta360 camera controller, run the following command:
+
+```sh run_ros2.sh python3 insta360_controller.py``
+
 ## Python Files
 - `dashboard_robot.py`: Dashboard for monitoring the robot's status. **Only working for ROS1.**
 - `dashboard_video.py`: Dashboard for monitoring the robot's video feed. **Only working for ROS2.**
 - `dashboard_wifi_monitor.py`: Dashboard for monitoring the robot's wifi connection. **Only working for ROS2.**
+- `insta360_controller.py`: Controller for the Insta360 camera. **Only working for ROS2.**
 
 
 ## Custom Config File

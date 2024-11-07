@@ -8,8 +8,6 @@ docker run  --privileged \
     -e QT_X11_NO_MITSHM=1 \
     -e DISPLAY \
     --net host \
-    --ipc host \
-    --pid host \
     -w /project \
     -v `pwd`:/project \
     dashboard_ros2:latest "$@" #python3 dashboard_video.py configs/teleop_tiago.yaml layouts/layout_teleop.yaml
