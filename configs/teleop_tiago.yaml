@@ -20,10 +20,6 @@ limit_torque: 18.0
 # ROS topics
 topics: ["/eurobin_iot_20/key", "/eurobin_iot_78/tof"]
 
-# force limits
-limit_force: 71.0
-limit_torque: 12.0
-
 # gstreamer
 gstreamer_topic: '/gstreamer_service'
 gstreamer_ip: 192.168.0.11
