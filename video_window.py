@@ -79,7 +79,7 @@ class MainWindow(QWidget):
 
         # Upper area with multiple blocks
         self.upper_area = QWidget(self)
-        self.upper_area.setFixedHeight(175)
+        self.upper_area.setFixedHeight(220)
 
         upper_layout = QHBoxLayout(self.upper_area)
         upper_layout.setContentsMargins(0, 0, 0, 0)
@@ -87,22 +87,22 @@ class MainWindow(QWidget):
 
         # FPS GRAPH
         self.wifi_label = QLabel(self)
-        self.wifi_label.setStyleSheet("background-color: gray; font-size: 14px; padding: 10px;")
+        self.wifi_label.setStyleSheet("background-color: #262629; font-size: 14px; padding: 10px;")
         upper_layout.addWidget(self.wifi_label)
 
         # DELAY GRAPH
         self.battery_label = QLabel(self)
-        self.battery_label.setStyleSheet("background-color: gray; font-size: 14px; padding: 10px;")
+        self.battery_label.setStyleSheet("background-color: #262629; font-size: 14px; padding: 10px;")
         upper_layout.addWidget(self.battery_label)
 
         # DOTS WITH CONNECTION WITH PC
         self.delay_label = QLabel(self)
-        self.delay_label.setStyleSheet("background-color: gray; font-size: 14px; padding: 10px;")
+        self.delay_label.setStyleSheet("background-color: #262629; font-size: 14px; padding: 10px;")
         upper_layout.addWidget(self.delay_label)
 
         # DATA
         self.time_label = QLabel(self)
-        self.time_label.setStyleSheet("background-color: gray; font-size: 14px; padding: 10px;")
+        self.time_label.setStyleSheet("background-color: #262629; font-size: 14px; padding: 10px;")
         upper_layout.addWidget(self.time_label)
 
         main_layout.addWidget(self.upper_area, 0, 0, 1, 3)
@@ -130,7 +130,7 @@ class MainWindow(QWidget):
         # Setup GStreamer
         main_camera_pipeline = (
             "udpsrc port=5001 ! application/x-rtp, payload=96 ! rtph264depay ! avdec_h264 ! "
-            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1500,height=1100 ! appsink name=appsink emit-signals=true async=false"
+            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1510,height=1150 ! appsink name=appsink emit-signals=true async=false"
         )
         self.webcam_display = WebcamDisplay(self.main_camera_area)
         self.gst_main_pipeline = GStreamerPipeline(main_camera_pipeline, self.webcam_display.update_image)
@@ -138,7 +138,7 @@ class MainWindow(QWidget):
 
         left_camera_pipeline = (
             "udpsrc port=5000 ! application/x-rtp, payload=96 ! rtph264depay ! avdec_h264 ! "
-            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1000,height=650 ! appsink name=appsink emit-signals=true async=false"
+            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1000,height=700 ! appsink name=appsink emit-signals=true async=false"
         )
         self.webcam_display = WebcamDisplay(self.left_camera_area)
         self.gst_left_pipeline = GStreamerPipeline(left_camera_pipeline, self.webcam_display.update_image)
@@ -146,7 +146,7 @@ class MainWindow(QWidget):
 
         right_camera_pipeline = (
             "udpsrc port=5002 ! application/x-rtp, payload=96 ! rtph264depay ! avdec_h264 ! "
-            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1000,height=650 ! appsink name=appsink emit-signals=true async=false"
+            "videoconvert ! videoscale ! video/x-raw,format=BGRx,width=1000,height=700 ! appsink name=appsink emit-signals=true async=false"
         )
         self.webcam_display = WebcamDisplay(self.right_camera_area)
         self.gst_right_pipeline = GStreamerPipeline(right_camera_pipeline, self.webcam_display.update_image)
