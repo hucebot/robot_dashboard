@@ -1,4 +1,4 @@
-FROM ros:humble
+FROM ros:humble-ros-base
 
 LABEL maintainer="jean-baptiste.mouret@inria.fr"
 ENV DEBIAN_FRONTEND="noninteractive" TZ="Europe/Paris"
